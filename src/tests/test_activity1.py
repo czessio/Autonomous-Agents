@@ -7,11 +7,10 @@ import os
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'activity1'))
 
-from activity1.environment import Environment
-from activity1.terrain_robot import TerrainRobot, RobotState
-from activity1.explorer_drone import ExplorerDrone, DroneState
-from activity1.simulation import MountainRescueSimulation
-
+from environment import Environment
+from terrain_robot import TerrainRobot, RobotState
+from explorer_drone import ExplorerDrone, DroneState
+from simulation import MountainRescueSimulation
 
 
 class TestEnvironment(unittest.TestCase):

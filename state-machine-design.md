@@ -6,7 +6,7 @@ This document describes the finite state machine designs for the Mountain Rescue
 
 ---
 
-## 🤖 Terrain Robot State Machine
+##  Terrain Robot State Machine
 
 ### States
 
@@ -93,7 +93,7 @@ BATTERY_LOW → AT_BASE: at_base_position
 
 ---
 
-## 🚁 Explorer Drone State Machine
+##  Explorer Drone State Machine
 
 ### States
 
@@ -197,7 +197,7 @@ BATTERY_LOW → AT_BASE: at_base_position
 
 ---
 
-## 🔄 Communication Integration
+##  Communication Integration
 
 ### Basic Mode Communication Flow
 
@@ -216,7 +216,7 @@ BATTERY_LOW → AT_BASE: at_base_position
 
 ---
 
-## 🎯 Design Principles
+##  Design Principles
 
 ### Reliability
 - **Conservative battery thresholds** ensure agents can always return to base
@@ -240,7 +240,7 @@ BATTERY_LOW → AT_BASE: at_base_position
 
 ---
 
-## 🔧 Implementation Notes
+##  Implementation Notes
 
 ### State Persistence
 - Each agent maintains current state as enum value

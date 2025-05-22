@@ -152,23 +152,23 @@ class Environment:
                                    linewidth=1, edgecolor='black', facecolor='darkgreen')
         ax.add_patch(rect_3k)
         
-        # Draw missing persons
+        # Draw missing persons (larger, more visible)
         for x, y in self.missing_persons:
-            ax.plot(x, y, 'ko', markersize=10, markerfacecolor='red')
-            ax.text(x-0.2, y+0.3, '♂', fontsize=14, fontweight='bold', color='white')
+            ax.plot(x, y, 'o', markersize=16, markerfacecolor='red', markeredgecolor='white', markeredgewidth=2)
+            ax.text(x, y, 'P', fontsize=10, ha='center', va='center', color='white', fontweight='bold')
         
         # Draw rescued persons (if any)
         for x, y in self.rescued_persons:
-            ax.plot(x, y, 'go', markersize=8, markerfacecolor='green', alpha=0.7)
-            ax.text(x-0.2, y+0.3, '✓', fontsize=12, fontweight='bold', color='white')
+            ax.plot(x, y, 'o', markersize=14, markerfacecolor='green', markeredgecolor='white', markeredgewidth=2)
+            ax.text(x, y, '✓', fontsize=10, ha='center', va='center', color='white', fontweight='bold')
         
-        # Draw terrain robots
+        # Draw terrain robots with realistic robot icons
         if terrain_robots:
             for robot in terrain_robots:
                 x, y = robot.position
                 # Color based on state
                 if robot.state.value == 'searching':
-                    color = 'yellow'
+                    color = 'gold'
                 elif robot.state.value == 'delivering':
                     color = 'orange'
                 elif robot.state.value == 'returning':
@@ -176,15 +176,34 @@ class Environment:
                 elif robot.state.value == 'battery_low':
                     color = 'red'
                 else:
-                    color = 'white'
+                    color = 'lightgray'
                 
-                rect = patches.Rectangle((x-0.3, y-0.3), 0.6, 0.6, 
+                # Draw robot icon: main body + tracks
+                # Main body (rectangle)
+                body = patches.Rectangle((x-0.3, y-0.2), 0.6, 0.4, 
                                        linewidth=2, edgecolor='black', facecolor=color)
-                ax.add_patch(rect)
-                ax.text(x, y, '+', fontsize=12, fontweight='bold', 
-                       ha='center', va='center', color='red')
+                ax.add_patch(body)
+                
+                # Left track
+                left_track = patches.Rectangle((x-0.4, y-0.3), 0.15, 0.6, 
+                                             linewidth=1, edgecolor='black', facecolor='darkgray')
+                ax.add_patch(left_track)
+                
+                # Right track  
+                right_track = patches.Rectangle((x+0.25, y-0.3), 0.15, 0.6, 
+                                              linewidth=1, edgecolor='black', facecolor='darkgray')
+                ax.add_patch(right_track)
+                
+                # Robot head/sensor (small circle)
+                head = patches.Circle((x, y+0.1), 0.1, linewidth=1, 
+                                    edgecolor='black', facecolor='white')
+                ax.add_patch(head)
+                
+                # Add robot ID
+                ax.text(x, y-0.05, f'R{robot.robot_id}', fontsize=8, ha='center', va='center', 
+                       fontweight='bold', color='black')
         
-        # Draw drones
+        # Draw drones with realistic drone icons
         if drones:
             for drone in drones:
                 x, y = drone.position
@@ -198,17 +217,52 @@ class Environment:
                 elif drone.state.value == 'battery_low':
                     color = 'red'
                 else:
-                    color = 'black'
+                    color = 'lightgray'
                 
-                ax.plot(x, y, 's', markersize=12, markerfacecolor=color, 
-                       markeredgecolor='white', markeredgewidth=2)
+                # Draw drone icon: central body + 4 rotors
+                # Central body (circle)
+                body = patches.Circle((x, y), 0.15, linewidth=2, 
+                                    edgecolor='black', facecolor=color)
+                ax.add_patch(body)
+                
+                # Four rotors (small circles)
+                rotor_positions = [(x-0.25, y+0.25), (x+0.25, y+0.25), 
+                                  (x-0.25, y-0.25), (x+0.25, y-0.25)]
+                for rotor_x, rotor_y in rotor_positions:
+                    rotor = patches.Circle((rotor_x, rotor_y), 0.08, linewidth=1, 
+                                         edgecolor='black', facecolor='white')
+                    ax.add_patch(rotor)
+                
+                # Rotor arms (lines connecting body to rotors)
+                ax.plot([x-0.15, x-0.17], [y+0.15, y+0.17], 'k-', linewidth=2)  # Top-left arm
+                ax.plot([x+0.15, x+0.17], [y+0.15, y+0.17], 'k-', linewidth=2)  # Top-right arm
+                ax.plot([x-0.15, x-0.17], [y-0.15, y-0.17], 'k-', linewidth=2)  # Bottom-left arm
+                ax.plot([x+0.15, x+0.17], [y-0.15, y-0.17], 'k-', linewidth=2)  # Bottom-right arm
+                
+                # Add drone ID
+                ax.text(x, y, f'D{drone.drone_id}', fontsize=7, ha='center', va='center', 
+                       fontweight='bold', color='black')
         
-        # Draw base station areas (lightly)
-        for x, y in self.terrain_robot_base:
-            ax.plot(x, y, 'rs', markersize=8, alpha=0.3)
+        # Draw base station areas with improved base icons
+        for i, (x, y) in enumerate(self.terrain_robot_base):
+            # Robot base: larger rectangle with garage-like appearance
+            base = patches.Rectangle((x-0.4, y-0.4), 0.8, 0.8, 
+                                   linewidth=2, edgecolor='darkred', facecolor='pink', alpha=0.8)
+            ax.add_patch(base)
+            # Add door lines
+            ax.plot([x-0.1, x-0.1], [y-0.4, y+0.4], 'darkred', linewidth=2)
+            ax.plot([x+0.1, x+0.1], [y-0.4, y+0.4], 'darkred', linewidth=2)
+            ax.text(x, y, 'RB', fontsize=9, ha='center', va='center', fontweight='bold', color='darkred')
         
-        for x, y in self.drone_base:
-            ax.plot(x, y, 'bs', markersize=8, alpha=0.3)
+        for i, (x, y) in enumerate(self.drone_base):
+            # Drone base: landing pad appearance
+            base = patches.Circle((x, y), 0.4, linewidth=2, 
+                                edgecolor='darkblue', facecolor='lightblue', alpha=0.8)
+            ax.add_patch(base)
+            # Add landing pad cross
+            ax.plot([x-0.3, x+0.3], [y, y], 'darkblue', linewidth=2)
+            ax.plot([x, x], [y-0.3, y+0.3], 'darkblue', linewidth=2)
+            ax.text(x, y-0.15, 'DB', fontsize=9, ha='center', va='center', fontweight='bold', color='darkblue')
         
         # Add elevation labels
         ax.text(centre_x, centre_y, '3K', ha='center', va='center', 

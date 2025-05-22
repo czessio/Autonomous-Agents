@@ -21,38 +21,52 @@ class TerrainRobot:
         self.base_position = start_position
         self.state = RobotState.AT_BASE
         
-        # Battery management
+        # battery management 
         self.max_battery = max_battery
         self.current_battery = max_battery
         self.battery_drain_rate = battery_drain_rate
-        self.low_battery_threshold = 20
+        self.low_battery_threshold = 20  
+        self.min_leave_threshold = 90   
+        self.recharge_rate = 10        
         
-        # Mission tracking
+        # mission tracking 
         self.target_person = None
         self.has_first_aid_kit = True
         self.persons_rescued = 0
+        self.assigned_location = None  # For communication system
         
-        # Movement tracking
+        # movement tracking
         self.last_positions = []  # Track recent positions to avoid getting stuck
-        self.max_position_history = 5
+        self.max_position_history = 8  # Increased to avoid loops better
+        self.stuck_counter = 0  # Track if robot is stuck
+        self.current_step = 0
     
-    def update(self, environment) -> None:
+    def update(self, environment, current_step=0, communication=None) -> None:
         """Main update method called each simulation step"""
-        # Drain battery
-        self._drain_battery(environment)
+        self.current_step = current_step
+        
+        # Battery management: drain only when not at base
+        if self.position != self.base_position:
+            self._drain_battery(environment)
+        elif self.state == RobotState.AT_BASE:
+            # Recharge when at base
+            old_battery = self.current_battery
+            self.current_battery = min(self.max_battery, self.current_battery + self.recharge_rate)
         
         # Check battery level
-        if self._is_battery_low() and self.state != RobotState.BATTERY_LOW:
+        if self._is_battery_low() and self.state not in [RobotState.BATTERY_LOW, RobotState.RETURNING, RobotState.AT_BASE]:
             self.state = RobotState.BATTERY_LOW
             self.target_person = None
+            self.assigned_location = None
+            print(f"⚡ Robot {self.robot_id} battery low ({self.current_battery}%), returning to base")
         
         # Execute behaviour based on current state
         if self.state == RobotState.AT_BASE:
-            self._handle_at_base_state(environment)
+            self._handle_at_base_state(environment, communication)
         elif self.state == RobotState.SEARCHING:
-            self._handle_searching_state(environment)
+            self._handle_searching_state(environment, communication)
         elif self.state == RobotState.DELIVERING:
-            self._handle_delivering_state(environment)
+            self._handle_delivering_state(environment, communication)
         elif self.state == RobotState.RETURNING:
             self._handle_returning_state(environment)
         elif self.state == RobotState.BATTERY_LOW:
@@ -62,10 +76,10 @@ class TerrainRobot:
         """Drain battery based on current terrain and actions"""
         drain = self.battery_drain_rate
         
-        # Increase drain when climbing (higher elevation = more drain)
+        # (higher elevation = more drain)
         elevation = environment.get_elevation(*self.position)
         if elevation > 0:
-            drain += elevation // 1000  # Extra drain per 1000m elevation
+            drain += elevation // 1000  
         
         self.current_battery = max(0, self.current_battery - drain)
     
@@ -73,36 +87,74 @@ class TerrainRobot:
         """Check if battery is below low threshold"""
         return self.current_battery <= self.low_battery_threshold
     
-    def _handle_at_base_state(self, environment) -> None:
-        """Handle behaviour when robot is at base station"""
-        if self.current_battery < self.max_battery:
-            # Recharge battery
-            self.current_battery = min(self.max_battery, self.current_battery + 5)
-        
-        if self.current_battery >= 40 and self.has_first_aid_kit:
-            # Ready to start mission (lowered threshold so robots start sooner)
-            self.state = RobotState.SEARCHING
+    def _handle_at_base_state(self, environment, communication=None) -> None:
+        """Handle behaviour when robot is at base station"""        
+        # Only leave base if battery is above minimum threshold and has first aid kit
+        if self.current_battery > self.min_leave_threshold and self.has_first_aid_kit:
+            # Check for drone-found persons first (Basic Mode communication)
+            if communication:
+                nearest_location = communication.get_nearest_person_location(self.position)
+                if nearest_location:
+                    self.assigned_location = nearest_location
+                    communication.assign_robot_to_location(self.robot_id, nearest_location)
+                    self.state = RobotState.SEARCHING  # Will navigate to assigned location
+                    self.stuck_counter = 0
+                    print(f"🤖 Robot {self.robot_id} leaving base ({self.current_battery}%) for reported person at {nearest_location}")
+                    return
+            
+            # No drone reports, do random search
+            if self.current_battery > 50:  # Only do random search with good battery
+                self.state = RobotState.SEARCHING
+                self.stuck_counter = 0
+                print(f"🤖 Robot {self.robot_id} leaving base ({self.current_battery}%) for random search")
     
-    def _handle_searching_state(self, environment) -> None:
-        """Handle searching behaviour - random movement to find missing persons"""
+    def _handle_searching_state(self, environment, communication=None) -> None:
+        """Handle searching behaviour - respond to communications or move randomly"""
         # Check if person found at current location
         if environment.person_at_location(*self.position):
+            # Found a person, deliver aid immediately
             self.target_person = self.position
             self.state = RobotState.DELIVERING
+            print(f"🤖 Robot {self.robot_id} found person at {self.position}!")
             return
         
-        # Move randomly to search
+        # If robot has assigned location, navigate there
+        if self.assigned_location:
+            if communication and communication.is_robot_near_location(self.position, self.assigned_location):
+                # Arrived at assigned location
+                if environment.person_at_location(*self.assigned_location):
+                    self.target_person = self.assigned_location
+                    self.state = RobotState.DELIVERING
+                    print(f"🤖 Robot {self.robot_id} arrived at assigned location {self.assigned_location}")
+                    return
+                else:
+                    # Person already rescued or moved
+                    print(f"🤖 Robot {self.robot_id} arrived but person at {self.assigned_location} already rescued")
+                    self.assigned_location = None
+            else:
+                # Move towards assigned location
+                self._move_towards_target(self.assigned_location, environment)
+                return
+        
+        # No assigned location, move randomly towards mountain (Basic Mode)
         self._move_randomly(environment)
     
-    def _handle_delivering_state(self, environment) -> None:
+    def _handle_delivering_state(self, environment, communication=None) -> None:
         """Handle first-aid delivery to found person"""
         if self.target_person and self.position == self.target_person:
             # Deliver first aid
             if environment.rescue_person(*self.position):
                 self.has_first_aid_kit = False
                 self.persons_rescued += 1
+                
+                # Notify communication system
+                if communication and self.assigned_location:
+                    communication.robot_completed_rescue(self.robot_id, self.assigned_location)
+                
                 self.target_person = None
+                self.assigned_location = None
                 self.state = RobotState.RETURNING
+                print(f"✅ Robot {self.robot_id} rescued person, returning to base")
         else:
             # Move towards target person
             self._move_towards_target(self.target_person, environment)
@@ -120,27 +172,75 @@ class TerrainRobot:
     def _handle_battery_low_state(self, environment) -> None:
         """Handle emergency return when battery is low"""
         if self.position == self.base_position:
-            # At base, can recharge
+            # At base, can recharge - transition to at_base state
             self.state = RobotState.AT_BASE
+            print(f"🤖 Robot {self.robot_id} returned to base for recharging")
         else:
             # Move towards base urgently
             self._move_towards_target(self.base_position, environment)
     
     def _move_randomly(self, environment) -> None:
-        """Move in a random direction, avoiding obstacles and boundaries"""
+        """Move in a random direction, prioritizing mountain area (Basic Mode)"""
         possible_moves = self._get_valid_moves(environment)
         
         if possible_moves:
-            # Prefer moves to new areas (avoid recent positions)
-            new_area_moves = [move for move in possible_moves 
-                             if move not in self.last_positions]
+            # Prioritize moves toward mountain area and avoid recent positions
+            mountain_moves = []
+            new_area_moves = []
+            toward_mountain_moves = []
             
-            if new_area_moves:
+            for move in possible_moves:
+                if environment.is_mountain_area(*move):
+                    mountain_moves.append(move)
+                if move not in self.last_positions:
+                    new_area_moves.append(move)
+                # Add moves that get closer to mountain center
+                if self._is_moving_toward_mountain(move, environment):
+                    toward_mountain_moves.append(move)
+            
+            # Prioritize: mountain area > toward mountain > new areas > any valid move
+            if mountain_moves and new_area_moves:
+                preferred_moves = [m for m in mountain_moves if m in new_area_moves]
+                if preferred_moves:
+                    new_position = random.choice(preferred_moves)
+                else:
+                    new_position = random.choice(mountain_moves)
+            elif mountain_moves:
+                new_position = random.choice(mountain_moves)
+            elif toward_mountain_moves:
+                new_position = random.choice(toward_mountain_moves)
+            elif new_area_moves:
                 new_position = random.choice(new_area_moves)
             else:
                 new_position = random.choice(possible_moves)
             
+            # Check if stuck (same position for too long)
+            if new_position == self.position:
+                self.stuck_counter += 1
+                if self.stuck_counter > 3:
+                    # Force movement to break out of stuck state
+                    new_position = random.choice(possible_moves)
+                    self.stuck_counter = 0
+            else:
+                self.stuck_counter = 0
+            
             self._update_position(new_position)
+        else:
+            # No valid moves - might be stuck
+            self.stuck_counter += 1
+    
+    def _is_moving_toward_mountain(self, position, environment) -> bool:
+        """Check if a position moves closer to mountain area"""
+        if hasattr(environment, 'mountain_area'):
+            x_start, y_start, x_end, y_end = environment.mountain_area['bounds']
+            mountain_center_x = (x_start + x_end) // 2
+            mountain_center_y = (y_start + y_end) // 2
+            
+            current_dist = abs(self.position[0] - mountain_center_x) + abs(self.position[1] - mountain_center_y)
+            new_dist = abs(position[0] - mountain_center_x) + abs(position[1] - mountain_center_y)
+            
+            return new_dist < current_dist
+        return False
     
     def _move_towards_target(self, target: Tuple[int, int], environment) -> None:
         """Move one step towards a target position"""

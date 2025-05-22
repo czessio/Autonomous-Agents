@@ -8,12 +8,13 @@ from typing import List
 from environment import Environment
 from terrain_robot import TerrainRobot, RobotState
 from explorer_drone import ExplorerDrone, DroneState
+from coordination import BasicCommunication
 
 
 class MountainRescueSimulation:
     def __init__(self, num_terrain_robots: int = 3, num_drones: int = 2, 
-                 num_missing_persons: int = 6, max_simulation_steps: int = 500):
-        # Simulation parameters
+                 num_missing_persons: int = 6, max_simulation_steps: int = 200):
+        # Simulation parameters - increased time limit
         self.max_steps = max_simulation_steps
         self.current_step = 0
         self.running = True
@@ -32,7 +33,7 @@ class MountainRescueSimulation:
             robot = TerrainRobot(
                 robot_id=i,
                 start_position=base_pos,
-                max_battery=100,
+                max_battery=120,  # Increased battery
                 battery_drain_rate=1
             )
             self.terrain_robots.append(robot)
@@ -43,10 +44,20 @@ class MountainRescueSimulation:
             drone = ExplorerDrone(
                 drone_id=i,
                 start_position=base_pos,
-                max_battery=120,
+                max_battery=120,  # Standardized battery
                 battery_drain_rate=2
             )
             self.drones.append(drone)
+        
+        # Communication system for Basic Mode
+        self.communication = BasicCommunication()  # Drone-robot communication
+        
+        # Start agents immediately (they have full battery)
+        for robot in self.terrain_robots:
+            robot.state = RobotState.SEARCHING
+        for drone in self.drones:
+            drone.state = DroneState.EXPLORING
+            drone._generate_search_pattern(self.environment)
         
         # Statistics tracking
         self.stats = {
@@ -71,16 +82,13 @@ class MountainRescueSimulation:
         print(f"Explorer drones: {len(self.drones)}")
         print("-" * 50)
         
+        # Ensure communication system is initialized (failsafe)
+        if not hasattr(self, 'communication'):
+            self.communication = BasicCommunication()
+        
         self.stats['mission_start_time'] = time.time()
         
-        # Force agents to start immediately by setting their state
-        for robot in self.terrain_robots:
-            robot.state = RobotState.SEARCHING
-        for drone in self.drones:
-            drone.state = DroneState.EXPLORING
-            drone._generate_search_pattern(self.environment)
-        
-        print("Agents activated - starting simulation...")
+        print("Agents will activate automatically when ready...")
         
         try:
             if visualise:
@@ -139,7 +147,7 @@ class MountainRescueSimulation:
         try:
             # Store animation in instance variable to prevent garbage collection
             self.animation = animation.FuncAnimation(
-                self.fig, animate, interval=1000, blit=False, cache_frame_data=False
+                self.fig, animate, interval=350, blit=False, cache_frame_data=False
             )
             
             print("Animation created, showing plot...")
@@ -155,13 +163,13 @@ class MountainRescueSimulation:
         if self.current_step < 3:
             print(f"Step {self.current_step}: Updating agents...")
         
-        # Update terrain robots
-        for robot in self.terrain_robots:
-            robot.update(self.environment)
-        
-        # Update drones
+        # Update drones first (they find people and communicate locations)
         for drone in self.drones:
-            drone.update(self.environment)
+            drone.update(self.environment, self.current_step, self.communication)
+        
+        # Update terrain robots (they respond to drone communications)
+        for robot in self.terrain_robots:
+            robot.update(self.environment, self.current_step, self.communication)
         
         # Check mission completion
         self._check_mission_status()
@@ -218,10 +226,18 @@ class MountainRescueSimulation:
             status = drone.get_status()
             status_text += f"  D{status['id']}: {status['state']} (Battery: {status['battery']}%)\n"
         
+        # Add legend
+        status_text += "\nLegend:\n"
+        status_text += "P = Person  🤖 = Robot  🚁 = Drone\n"
+        status_text += "RB = Robot Base  DB = Drone Base\n"
+        status_text += "Colors: Gold=Search, Orange=Action\n"
+        status_text += "Cyan=Explore, Red=Low Battery\n"
+        status_text += "Gray=At Base"
+        
         # Add text box
         self.ax.text(0.02, 0.98, status_text, transform=self.ax.transAxes,
                     verticalalignment='top', bbox=dict(boxstyle='round', 
-                    facecolor='wheat', alpha=0.8), fontfamily='monospace', fontsize=9)
+                    facecolor='wheat', alpha=0.9), fontfamily='monospace', fontsize=8)
     
     def _check_mission_status(self) -> None:
         """Check if mission is complete or should be terminated"""
@@ -273,8 +289,8 @@ class MountainRescueSimulation:
         print(f"Step {self.current_step}: {rescued}/{total} persons rescued")
         
         # Print agent status
-        active_robots = sum(1 for r in self.terrain_robots if r.current_battery > 0)
-        active_drones = sum(1 for d in self.drones if d.current_battery > 0)
+        active_robots = sum(1 for r in self.terrain_robots if r.current_battery > r.low_battery_threshold)
+        active_drones = sum(1 for d in self.drones if d.current_battery > d.low_battery_threshold)
         
         print(f"  Active agents: {active_robots} robots, {active_drones} drones")
     
@@ -344,12 +360,12 @@ class MountainRescueSimulation:
 
 def main():
     """Main function to run the simulation"""
-    # Create and run simulation
+    # Create and run simulation with longer time limit
     simulation = MountainRescueSimulation(
         num_terrain_robots=3,
         num_drones=2,
         num_missing_persons=6,
-        max_simulation_steps=100
+        max_simulation_steps=200  # Increased time limit
     )
     
     # Ask user for mode
@@ -365,7 +381,7 @@ def main():
             final_report = simulation.run_simulation(visualise=True, step_delay=0)
         else:
             # Run in batch mode (safer)
-            final_report = simulation.run_simulation(visualise=False, step_delay=0.1)
+            final_report = simulation.run_simulation(visualise=False, step_delay=0.05)
     except KeyboardInterrupt:
         print("\nSimulation interrupted by user")
         final_report = simulation._generate_final_report()

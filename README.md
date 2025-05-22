@@ -6,10 +6,10 @@ A comprehensive multi-agent simulation system for autonomous mountain rescue ope
 
 This project implements a sophisticated multi-agent system for **UFCXR-15-3 Autonomous Agents and Multiagent Systems** at the University of the West of England. The system simulates autonomous rescue operations in mountainous terrain using:
 
-- ** Terrain Robots**: Ground-based rescue vehicles that deliver first-aid kits
-- ** Explorer Drones**: Aerial reconnaissance units that locate missing persons
-- ** Mountain Environment**: Realistic terrain with elevation zones and hazards
-- ** Communication System**: Coordination between different agent types
+- **Terrain Robots**: Ground-based rescue vehicles that deliver first-aid kits
+- **Explorer Drones**: Aerial reconnaissance units that locate missing persons
+- **Mountain Environment**: Realistic terrain with elevation zones and hazards
+- **Communication System**: Coordination between different agent types
 
 ##  **Key Features**
 

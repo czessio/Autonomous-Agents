@@ -36,6 +36,7 @@ mountain-rescue/
 │   │   ├── environment.py       # Environment and world setup
 │   │   ├── terrain_robot.py     # First-aid terrain robot agent
 │   │   ├── explorer_drone.py    # Explorer drone agent
+│   │   ├── coordination.py      # Communication system
 │   │   └── simulation.py        # Main simulation controller
 │   └── tests/
 │       └── test_activity1.py    # Unit tests
@@ -57,8 +58,8 @@ python simulation.py
 This will launch the simulation with visualisation showing:
 - Mountain terrain with elevation zones (0, 1K, 2K, 3K MASL)
 - Missing persons scattered across the mountain
-- Terrain robots (white squares with red crosses) delivering first-aid
-- Explorer drones (black squares) searching for persons
+- Terrain robots (with tank-like appearance) delivering first-aid
+- Explorer drones (with quadcopter design) searching for persons
 - Real-time status information and statistics
 
 ### Running Tests
@@ -67,15 +68,57 @@ Execute the unit tests to verify system functionality:
 
 ```bash
 cd src
-python -m pytest tests/test_activity1.py -v
+python tests/test_activity1.py
 ```
 
-Or using unittest:
+## Unit Test Cases for Activity 1
 
-```bash
-cd src
-python -m unittest tests.test_activity1 -v
+The comprehensive test suite validates all core functionality with 25 individual test cases:
+
 ```
+Running Mountain Rescue Simulation Tests...
+==================================================
+ 1. Test elevation zones are set up with multiple height levels
+ 2. Test environment initialisation with correct dimensions and agent counts
+ 3. Test rescuing at empty location returns False
+ 4. Test mountain area boundaries are properly defined
+ 5. Test missing persons are correctly placed within mountain boundaries
+ 6. Test person rescue mechanism works correctly
+ 7. Test drone battery decreases during flight operations
+ 8. Test drone starts with correct initial values
+ 9. Test drone properly resets mission data when returning to base
+10. Test drone detects persons and changes state appropriately
+11. Test drone position validation works correctly
+12. Test drone generates systematic search patterns
+13. Test drone has 6-directional movement capability as required
+14. Test complete simulation runs without errors
+15. Test agents are created at their designated base positions
+16. Test simulation detects mission completion correctly
+17. Test simulation creates correct number of agents and environment
+18. Test single simulation step executes without errors
+19. Test simulation properly tracks performance statistics
+20. Test battery decreases when robot operates away from base
+21. Test robot tracks its movement history correctly
+22. Test robot can successfully rescue persons
+23. Test robot starts with correct initial values
+24. Test robot state machine transitions work correctly
+25. Test position validation for environment boundaries
+==================================================
+TEST SUMMARY
+==================================================
+ALL TESTS PASSED: 25/25
+Mountain Rescue System is ready for operation!
+==================================================
+```
+
+### Test Coverage Areas
+
+The test suite comprehensively validates:
+
+- **Environment Setup (Tests 1-6)**: Terrain generation, elevation zones, person placement, and rescue mechanics
+- **Drone Functionality (Tests 7-13)**: Battery management, 6-directional movement, search patterns, and person detection
+- **Simulation Management (Tests 14-19)**: Agent coordination, statistics tracking, and mission completion detection
+- **Robot Functionality (Tests 20-25)**: Ground navigation, state transitions, rescue capability, and battery management
 
 ## System Features (Activity 1)
 
@@ -168,7 +211,7 @@ The simulation tracks:
 - Professional presentation matching specifications
 
 ### Testing
-- Comprehensive unit test coverage
+- Comprehensive unit test coverage (25 test cases)
 - Integration testing for multi-agent interactions
 - Automated validation of core functionality
 

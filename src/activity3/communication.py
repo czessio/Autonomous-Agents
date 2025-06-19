@@ -74,14 +74,14 @@ class ExtendedCommunication:
         """Assign a robot to go to a specific location (Basic Mode compatibility)"""
         self.robot_targets[robot_id] = location
         self.assign_robot_to_rescue(f"robot_{robot_id}", location)
-        print(f"📡 Robot {robot_id} assigned to rescue person at {location}")
+        print(f" Robot {robot_id} assigned to rescue person at {location}")
     
     def robot_completed_rescue(self, robot_id: str, location: Tuple[int, int]) -> None:
         """Robot reports completing a rescue (Basic Mode compatibility)"""
         if robot_id in self.robot_targets:
             del self.robot_targets[robot_id]
         self.complete_rescue(f"robot_{robot_id}", location)
-        print(f"📡 Robot {robot_id} completed rescue at {location}")
+        print(f" Robot {robot_id} completed rescue at {location}")
     
     def get_nearest_person_location(self, robot_position: Tuple[int, int]) -> Optional[Tuple[int, int]]:
         """Get nearest unassigned person location for a robot"""
@@ -133,7 +133,7 @@ class ExtendedCommunication:
             self.individual_messages += 1
             self.message_history.append(message)
             
-            print(f"📨 {sender_id} → {recipient_id}: {msg_type.value} at {location}")
+            print(f" {sender_id} → {recipient_id}: {msg_type.value} at {location}")
     
     def broadcast_message(self, sender_id: str, msg_type: MessageType,
                          location: Optional[Tuple[int, int]] = None,
@@ -159,7 +159,7 @@ class ExtendedCommunication:
         self.broadcast_messages_count += 1
         self.message_history.append(message)
         
-        print(f"📢 {sender_id} broadcasts: {msg_type.value} at {location}")
+        print(f" {sender_id} broadcasts: {msg_type.value} at {location}")
     
     def drone_found_person(self, drone_id: str, location: Tuple[int, int], 
                           urgency: int, broadcast: bool = True) -> None:

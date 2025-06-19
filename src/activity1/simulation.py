@@ -265,7 +265,7 @@ class MountainRescueSimulation:
                     break
         
         if all_agents_inactive:
-            print(f"\n⚠️ Mission terminated: All agents out of battery. Step {self.current_step}")
+            print(f"\n Mission terminated: All agents out of battery. Step {self.current_step}")
             self.running = False
     
     def _update_statistics(self) -> None:

@@ -57,13 +57,13 @@ class MountainRescueSimulation:
         # Create communication system based on mode
         if self.operation_mode == OperationMode.NOVEL:
             self.communication = ExtendedCommunication()
-            print("🧠 Starting in NOVEL MODE with Q-Learning and collective intelligence")
+            print(" Starting in NOVEL MODE with Q-Learning and collective intelligence")
         elif self.operation_mode == OperationMode.EXTENDED:
             self.communication = ExtendedCommunication()
-            print("🚀 Starting in EXTENDED MODE with advanced communication")
+            print(" Starting in EXTENDED MODE with advanced communication")
         else:
             self.communication = BasicCommunication()
-            print("🚀 Starting in BASIC MODE")
+            print(" Starting in BASIC MODE")
         
         # Create terrain robots
         self.terrain_robots = []
@@ -78,7 +78,7 @@ class MountainRescueSimulation:
             # Load previous knowledge if available
             knowledge_file = "data/collective_knowledge.pkl"
             if self.collective_learning.load_collective_knowledge(knowledge_file):
-                print("📚 Loaded previous collective knowledge")
+                print(" Loaded previous collective knowledge")
             
             # Create learning robots
             for i, base_pos in enumerate(self.environment.terrain_robot_base):
@@ -228,7 +228,7 @@ class MountainRescueSimulation:
                         if isinstance(robot, LearningTerrainRobot):
                             robot.q_agent.rescue_success_map[message.location] += 0.1  # Anticipatory reward
                         
-                        print(f"🤖 Robot {robot.robot_id} responding to rescue at {message.location}")
+                        print(f" Robot {robot.robot_id} responding to rescue at {message.location}")
         
         # Update robot
         robot.update(self.environment, self.current_step, self.communication)
@@ -311,7 +311,7 @@ class MountainRescueSimulation:
             status_text += f"  D{status['id']}: {status['state']} (B:{status['battery']}%)\n"
         
         # Legend
-        status_text += "\nLegend: P=Person 🤖=Robot 🚁=Drone | "
+        status_text += "\nLegend: P=Person =Robot =Drone | "
         status_text += "Q=Q-table size Ep=Episodes"
         
         # Add text box
@@ -391,7 +391,7 @@ class MountainRescueSimulation:
         if self.operation_mode == OperationMode.NOVEL:
             knowledge_file = "data/collective_knowledge.pkl"
             self.collective_learning.save_collective_knowledge(knowledge_file)
-            print(f"💾 Saved collective knowledge to {knowledge_file}")
+            print(f" Saved collective knowledge to {knowledge_file}")
         
         self._print_final_report(report)
         return report
@@ -405,26 +405,26 @@ class MountainRescueSimulation:
         print(f"Success Rate: {report['success_rate']:.1%}")
         print(f"Persons Rescued: {report['persons_rescued']} / {report['persons_spawned']} spawned")
         
-        print(f"\n📊 KEY PERFORMANCE INDICATORS:")
+        print(f"\n KEY PERFORMANCE INDICATORS:")
         print(f"  Average Rescue Time: {report['avg_rescue_time']} steps")
         print(f"  Battery Efficiency: {report['battery_efficiency']:.3f} rescues/battery unit")
         print(f"  Total Battery Consumed: {report['total_battery_consumed']} units")
         
         if report['communication_stats']:
-            print(f"\n📡 COMMUNICATION STATISTICS:")
+            print(f"\n COMMUNICATION STATISTICS:")
             comm = report['communication_stats']
             print(f"  Total Messages: {comm.get('total_messages', 0)}")
             print(f"  Message Efficiency: {comm.get('message_efficiency', 0):.2%}")
         
         if report['learning_stats']:
-            print(f"\n🧠 LEARNING STATISTICS:")
+            print(f"\n LEARNING STATISTICS:")
             learning = report['learning_stats']
             print(f"  Total States Explored: {learning.get('total_states_explored', 0)}")
             print(f"  Terrain Points Mapped: {learning.get('total_terrain_mapped', 0)}")
             print(f"  Known Rescue Locations: {learning.get('total_rescue_locations', 0)}")
             print(f"  Average Exploration Rate: {learning.get('average_exploration_rate', 0):.3f}")
         
-        print("\n🤖 TERRAIN ROBOT PERFORMANCE:")
+        print("\n TERRAIN ROBOT PERFORMANCE:")
         for robot_perf in report['robot_performance']:
             print(f"  Robot {robot_perf['id']}: {robot_perf['persons_rescued']} rescued, "
                   f"{robot_perf['battery_used']} battery used")
@@ -433,7 +433,7 @@ class MountainRescueSimulation:
                       f"{robot_perf['q_table_size']} states learned, "
                       f"ε={robot_perf['exploration_rate']:.3f}")
         
-        print("\n🚁 DRONE PERFORMANCE:")
+        print("\n DRONE PERFORMANCE:")
         for drone_perf in report['drone_performance']:
             print(f"  Drone {drone_perf['id']}: {drone_perf['persons_found']} found, "
                   f"{drone_perf['areas_explored']} areas explored")
@@ -566,7 +566,7 @@ class MountainRescueSimulation:
                 self.total_persons_spawned += 1
                 self.last_spawn_step = self.current_step
                 
-                print(f"🆕 New person appeared at {location} (step {self.current_step})")
+                print(f" New person appeared at {location} (step {self.current_step})")
                 return
     
     def _update_rescue_statistics(self) -> None:
@@ -602,12 +602,12 @@ class MountainRescueSimulation:
                         break
             
             if all_inactive and len(self.environment.missing_persons) > 0:
-                print(f"\n⚠️ Mission ended: All agents inactive with {len(self.environment.missing_persons)} persons remaining")
+                print(f"\n Mission ended: All agents inactive with {len(self.environment.missing_persons)} persons remaining")
                 self.running = False
         else:
             # Basic Mode
             if len(self.environment.missing_persons) == 0:
-                print(f"\n🎉 Mission Complete! All persons rescued in {self.current_step} steps.")
+                print(f"\n Mission Complete! All persons rescued in {self.current_step} steps.")
                 self.running = False
             else:
                 all_inactive = True
@@ -617,13 +617,13 @@ class MountainRescueSimulation:
                         break
                 
                 if all_inactive:
-                    print(f"\n⚠️ Mission terminated: All agents out of battery.")
+                    print(f"\n Mission terminated: All agents out of battery.")
                     self.running = False
 
 
 def main():
     """Main function to run the simulation with mode selection"""
-    print("\n🏔️ MOUNTAIN RESCUE SIMULATION - ACTIVITY 4")
+    print("\n MOUNTAIN RESCUE SIMULATION - ACTIVITY 4")
     print("="*50)
     print("Select operation mode:")
     print("1. Basic Mode")
@@ -659,7 +659,7 @@ def main():
             report = simulation.run_simulation(visualise=(viz_choice == 'y'))
             
         elif choice == "3":
-            print("\n🧠 NOVEL MODE - Q-Learning Configuration")
+            print("\n NOVEL MODE - Q-Learning Configuration")
             learn_choice = input("Enable learning? (y/n): ").strip().lower()
             spawn_choice = input("Enable dynamic person spawning? (y/n): ").strip().lower()
             
@@ -677,7 +677,7 @@ def main():
             report = simulation.run_simulation(visualise=(viz_choice == 'y'))
             
         elif choice == "4":
-            print("\n📊 Running comparison of all modes...")
+            print("\n Running comparison of all modes...")
             
             reports = {}
             

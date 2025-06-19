@@ -24,7 +24,7 @@ class BasicCommunication:
             self.pending_locations.append(location)
 
             if broadcast:
-                print(f"📡 Drone {drone_id} broadcasts: Person found at {location} (urgency: {urgency})")
+                print(f" Drone {drone_id} broadcasts: Person found at {location} (urgency: {urgency})")
             return True
         return False
     
@@ -57,7 +57,7 @@ class BasicCommunication:
     def assign_robot_to_location(self, robot_id, location):
         """Assign a robot to go to a specific location"""
         self.robot_targets[robot_id] = location
-        print(f"📡 Robot {robot_id} assigned to rescue person at {location}")
+        print(f" Robot {robot_id} assigned to rescue person at {location}")
     
     def robot_completed_rescue(self, robot_id, location):
         """Robot reports completing a rescue"""
@@ -67,7 +67,7 @@ class BasicCommunication:
             del self.found_persons[location]
         if location in self.waiting_drones:
             del self.waiting_drones[location]
-        print(f"📡 Robot {robot_id} completed rescue at {location}")
+        print(f" Robot {robot_id} completed rescue at {location}")
     
     def is_robot_near_location(self, robot_position, target_location, threshold=1):
         """Check if robot is near target location"""

@@ -58,7 +58,7 @@ class TerrainRobot:
             self.state = RobotState.BATTERY_LOW
             self.target_person = None
             self.assigned_location = None
-            print(f"⚡ Robot {self.robot_id} battery low ({self.current_battery}%), returning to base")
+            print(f" Robot {self.robot_id} battery low ({self.current_battery}%), returning to base")
         
         # Execute behaviour based on current state
         if self.state == RobotState.AT_BASE:
@@ -99,14 +99,14 @@ class TerrainRobot:
                     communication.assign_robot_to_location(self.robot_id, nearest_location)
                     self.state = RobotState.SEARCHING  # Will navigate to assigned location
                     self.stuck_counter = 0
-                    print(f"🤖 Robot {self.robot_id} leaving base ({self.current_battery}%) for reported person at {nearest_location}")
+                    print(f" Robot {self.robot_id} leaving base ({self.current_battery}%) for reported person at {nearest_location}")
                     return
             
             # No drone reports, do random search
             if self.current_battery > 50:  # Only do random search with good battery
                 self.state = RobotState.SEARCHING
                 self.stuck_counter = 0
-                print(f"🤖 Robot {self.robot_id} leaving base ({self.current_battery}%) for random search")
+                print(f" Robot {self.robot_id} leaving base ({self.current_battery}%) for random search")
     
     def _handle_searching_state(self, environment, communication=None) -> None:
         """Handle searching behaviour - respond to communications or move randomly"""
@@ -115,7 +115,7 @@ class TerrainRobot:
             # Found a person, deliver aid immediately
             self.target_person = self.position
             self.state = RobotState.DELIVERING
-            print(f"🤖 Robot {self.robot_id} found person at {self.position}!")
+            print(f" Robot {self.robot_id} found person at {self.position}!")
             return
         
         # If robot has assigned location, navigate there
@@ -125,11 +125,11 @@ class TerrainRobot:
                 if environment.person_at_location(*self.assigned_location):
                     self.target_person = self.assigned_location
                     self.state = RobotState.DELIVERING
-                    print(f"🤖 Robot {self.robot_id} arrived at assigned location {self.assigned_location}")
+                    print(f" Robot {self.robot_id} arrived at assigned location {self.assigned_location}")
                     return
                 else:
                     # Person already rescued or moved
-                    print(f"🤖 Robot {self.robot_id} arrived but person at {self.assigned_location} already rescued")
+                    print(f" Robot {self.robot_id} arrived but person at {self.assigned_location} already rescued")
                     self.assigned_location = None
             else:
                 # Move towards assigned location
@@ -154,7 +154,7 @@ class TerrainRobot:
                 self.target_person = None
                 self.assigned_location = None
                 self.state = RobotState.RETURNING
-                print(f"✅ Robot {self.robot_id} rescued person, returning to base")
+                print(f" Robot {self.robot_id} rescued person, returning to base")
         else:
             # Move towards target person
             self._move_towards_target(self.target_person, environment)
@@ -174,7 +174,7 @@ class TerrainRobot:
         if self.position == self.base_position:
             # At base, can recharge - transition to at_base state
             self.state = RobotState.AT_BASE
-            print(f"🤖 Robot {self.robot_id} returned to base for recharging")
+            print(f" Robot {self.robot_id} returned to base for recharging")
         else:
             # Move towards base urgently
             self._move_towards_target(self.base_position, environment)

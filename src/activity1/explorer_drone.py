@@ -100,7 +100,7 @@ class ExplorerDrone:
         if self.current_battery > self.min_leave_threshold:
             self._generate_search_pattern(environment)
             self.state = DroneState.EXPLORING
-            print(f"🚁 Drone {self.drone_id} leaving base with {self.current_battery}% battery")
+            print(f" Drone {self.drone_id} leaving base with {self.current_battery}% battery")
     
     def _handle_exploring_state(self, environment, communication=None) -> None:
         """Handle exploration behaviour using 6-directional movement"""
@@ -145,7 +145,7 @@ class ExplorerDrone:
         
         # Check if person has been rescued (robot arrived and completed rescue)
         if not environment.person_at_location(*self.position):
-            print(f"✅ Person at {self.position} rescued! Drone {self.drone_id} returning to base.")
+            print(f" Person at {self.position} rescued! Drone {self.drone_id} returning to base.")
             if communication:
                 communication.drone_stopped_waiting(self.position)
             self.current_target = None
@@ -154,7 +154,7 @@ class ExplorerDrone:
         
         # If waited too long, continue exploring
         if self.waiting_time >= self.max_waiting_time:
-            print(f"⏰ Drone {self.drone_id} waited too long, continuing exploration...")
+            print(f" Drone {self.drone_id} waited too long, continuing exploration...")
             if communication:
                 communication.drone_stopped_waiting(self.position)
             self.current_target = None
@@ -179,7 +179,7 @@ class ExplorerDrone:
         if self.position == self.base_position:
             # At base, can recharge - transition to at_base state
             self.state = DroneState.AT_BASE
-            print(f"🚁 Drone {self.drone_id} returned to base for recharging")
+            print(f" Drone {self.drone_id} returned to base for recharging")
         else:
             # Move towards base urgently
             self._move_towards_target(self.base_position, environment)
@@ -194,7 +194,7 @@ class ExplorerDrone:
             
             if self.drone_id == 0:
                 # Drone 0: Start from TOP of mountain, work downwards (top-to-bottom)
-                print(f"🚁 Drone {self.drone_id} will search from TOP of mountain (top-to-bottom)")
+                print(f" Drone {self.drone_id} will search from TOP of mountain (top-to-bottom)")
                 print(f"   Starting at top: ({x_start}, {y_start})")
                 
                 for row in range(y_start, y_end):  # Start from TOP row, go down
@@ -208,7 +208,7 @@ class ExplorerDrone:
                         
             elif self.drone_id == 1:
                 # Drone 1: Start from BOTTOM of mountain, work upwards (bottom-to-top)
-                print(f"🚁 Drone {self.drone_id} will search from BOTTOM of mountain (bottom-to-top)")
+                print(f" Drone {self.drone_id} will search from BOTTOM of mountain (bottom-to-top)")
                 print(f"   Starting at bottom: ({x_start}, {y_end-1})")
                 
                 for row in range(y_end - 1, y_start - 1, -1):  # Start from BOTTOM row, go up
@@ -224,7 +224,7 @@ class ExplorerDrone:
                 # Additional drones (if any): Use alternating top/bottom starts
                 if self.drone_id % 2 == 0:
                     # Even drone IDs: start from top
-                    print(f"🚁 Drone {self.drone_id} will search from TOP")
+                    print(f" Drone {self.drone_id} will search from TOP")
                     for row in range(y_start, y_end):
                         row_index = row - y_start
                         if row_index % 2 == 0:
@@ -235,7 +235,7 @@ class ExplorerDrone:
                                 self.search_pattern.append((x, row))
                 else:
                     # Odd drone IDs: start from bottom
-                    print(f"🚁 Drone {self.drone_id} will search from BOTTOM")
+                    print(f" Drone {self.drone_id} will search from BOTTOM")
                     for row in range(y_end - 1, y_start - 1, -1):
                         row_index = (y_end - 1) - row
                         if row_index % 2 == 0:
@@ -258,7 +258,7 @@ class ExplorerDrone:
                     self.search_pattern.append((x, min(environment.height - 1, y_end)))
         
         self.pattern_index = 0
-        print(f"🚁 Drone {self.drone_id} generated search pattern with {len(self.search_pattern)} waypoints")
+        print(f" Drone {self.drone_id} generated search pattern with {len(self.search_pattern)} waypoints")
     
     def _execute_movement(self, environment) -> None:
         """Execute movement using 6-directional capability with memory"""
@@ -298,10 +298,10 @@ class ExplorerDrone:
         # Priority: unexplored mountain > unexplored any > any valid move
         if mountain_unexplored_moves:
             self.position = random.choice(mountain_unexplored_moves)
-            print(f"🚁 Drone {self.drone_id} exploring new mountain area at {self.position}")
+            print(f" Drone {self.drone_id} exploring new mountain area at {self.position}")
         elif unexplored_moves:
             self.position = random.choice(unexplored_moves)
-            print(f"🚁 Drone {self.drone_id} exploring new area at {self.position}")
+            print(f" Drone {self.drone_id} exploring new area at {self.position}")
         elif possible_moves:
             # All nearby areas explored, move to a random valid position
             # But try to find areas further away that might be unexplored
@@ -311,7 +311,7 @@ class ExplorerDrone:
                 self._move_towards_target(furthest_move, environment)
             else:
                 # Truly all areas explored, return to base or random move
-                print(f"🚁 Drone {self.drone_id} has explored all reachable areas")
+                print(f" Drone {self.drone_id} has explored all reachable areas")
                 if self.current_battery > 50:
                     self.position = random.choice(possible_moves)
                 else:

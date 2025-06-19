@@ -56,10 +56,10 @@ class MountainRescueSimulation:
         # Create communication system based on mode
         if self.operation_mode == OperationMode.EXTENDED:
             self.communication = ExtendedCommunication()
-            print("🚀 Starting in EXTENDED MODE with advanced communication")
+            print(" Starting in EXTENDED MODE with advanced communication")
         else:
             self.communication = BasicCommunication()
-            print("🚀 Starting in BASIC MODE")
+            print(" Starting in BASIC MODE")
         
         # Create terrain robots
         self.terrain_robots = []
@@ -136,7 +136,7 @@ class MountainRescueSimulation:
         if new_mode == self.operation_mode:
             return
         
-        print(f"\n🔄 Switching from {self.operation_mode.value} to {new_mode.value} mode...")
+        print(f"\n Switching from {self.operation_mode.value} to {new_mode.value} mode...")
         self.operation_mode = new_mode
         
         # Switch communication system
@@ -153,12 +153,12 @@ class MountainRescueSimulation:
             # Enable dynamic spawning
             self.spawn_new_persons = True
             
-            print("✅ Extended Mode activated: Advanced communication enabled")
+            print(" Extended Mode activated: Advanced communication enabled")
             
         else:
             self.communication = BasicCommunication()
             self.spawn_new_persons = False
-            print("✅ Basic Mode activated: Simple coordination enabled")
+            print(" Basic Mode activated: Simple coordination enabled")
     
     def _update_simulation_step(self) -> None:
         """Update all agents and environment for one time step"""
@@ -220,7 +220,7 @@ class MountainRescueSimulation:
                     if self.communication.assign_robot_to_rescue(robot_id, message.location):
                         robot.assigned_location = message.location
                         robot.state = RobotState.SEARCHING
-                        print(f"🤖 Robot {robot.robot_id} responding to rescue at {message.location}")
+                        print(f" Robot {robot.robot_id} responding to rescue at {message.location}")
             
             elif message.msg_type == MessageType.RESCUE_REQUEST:
                 # Direct request from drone
@@ -228,7 +228,7 @@ class MountainRescueSimulation:
                     if self.communication.assign_robot_to_rescue(robot_id, message.location):
                         robot.assigned_location = message.location
                         robot.state = RobotState.SEARCHING
-                        print(f"🤖 Robot {robot.robot_id} assigned to rescue at {message.location}")
+                        print(f" Robot {robot.robot_id} assigned to rescue at {message.location}")
         
         # Update robot normally
         robot.update(self.environment, self.current_step, self.communication)
@@ -258,7 +258,7 @@ class MountainRescueSimulation:
                 self.total_persons_spawned += 1
                 self.last_spawn_step = self.current_step
                 
-                print(f"🆕 New person appeared at {location} (step {self.current_step})")
+                print(f" New person appeared at {location} (step {self.current_step})")
                 return
     
     def _update_rescue_statistics(self) -> None:
@@ -297,12 +297,12 @@ class MountainRescueSimulation:
                         break
             
             if all_inactive and len(self.environment.missing_persons) > 0:
-                print(f"\n⚠️ Mission ended: All agents inactive with {len(self.environment.missing_persons)} persons remaining")
+                print(f"\n Mission ended: All agents inactive with {len(self.environment.missing_persons)} persons remaining")
                 self.running = False
         else:
             # Basic Mode: End when all initial persons rescued or agents inactive
             if len(self.environment.missing_persons) == 0:
-                print(f"\n🎉 Mission Complete! All persons rescued in {self.current_step} steps.")
+                print(f"\n Mission Complete! All persons rescued in {self.current_step} steps.")
                 self.running = False
                 return
             
@@ -315,7 +315,7 @@ class MountainRescueSimulation:
                     break
             
             if all_agents_inactive:
-                print(f"\n⚠️ Mission terminated: All agents out of battery. Step {self.current_step}")
+                print(f"\n Mission terminated: All agents out of battery. Step {self.current_step}")
                 self.running = False
     
     def _update_statistics(self) -> None:
@@ -369,7 +369,7 @@ class MountainRescueSimulation:
         
         # Add legend
         status_text += "\nLegend:\n"
-        status_text += "P = Person  🤖 = Robot  🚁 = Drone\n"
+        status_text += "P = Person   = Robot   = Drone\n"
         status_text += "RB = Robot Base  DB = Drone Base"
         
         # Add text box
@@ -619,7 +619,7 @@ def main():
             report = simulation.run_simulation(visualise=(viz_choice == 'y'), step_delay=0.05)
 
         elif choice == "3":
-            print("\n📊 Running comparison between Basic and Extended modes...")
+            print("\n Running comparison between Basic and Extended modes...")
 
             print("\n--- BASIC MODE ---")
             basic_sim = MountainRescueSimulation(

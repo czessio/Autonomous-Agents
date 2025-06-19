@@ -299,7 +299,7 @@ class CollectiveQLearning:
         Merge individual robot knowledge into shared knowledge base.
         Uses weighted averaging to combine Q-values and terrain knowledge.
         """
-        print("🧠 Sharing collective knowledge between robots...")
+        print(" Sharing collective knowledge between robots...")
         
         # Merge Q-tables
         all_states = set()
@@ -356,7 +356,7 @@ class CollectiveQLearning:
             for pos, count in self.shared_q_agent.rescue_success_map.items():
                 agent.rescue_success_map[pos] = max(agent.rescue_success_map[pos], count)
         
-        print(f"✅ Knowledge shared: {len(all_states)} states, {len(all_positions)} terrain points")
+        print(f" Knowledge shared: {len(all_states)} states, {len(all_positions)} terrain points")
     
     def save_collective_knowledge(self, filepath: str) -> None:
         """Save the collective knowledge base."""

@@ -397,9 +397,9 @@ if __name__ == '__main__':
     # Print summary
     print("\n" + "=" * 50)
     if result.wasSuccessful():
-        print(f"✅ ALL TESTS PASSED: {result.testsRun}/{total_tests}")
+        print(f" ALL TESTS PASSED: {result.testsRun}/{total_tests}")
         print("Novel Mode Q-Learning implementation verified!")
     else:
-        print(f"❌ SOME TESTS FAILED: {len(result.failures)} failures, {len(result.errors)} errors")
+        print(f" SOME TESTS FAILED: {len(result.failures)} failures, {len(result.errors)} errors")
         print("Please fix issues before proceeding.")
     print("=" * 50)

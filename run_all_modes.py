@@ -1,9 +1,14 @@
-# Quick script to run all simulation modes for testing and comparison
+# Fixed script to run all simulation modes for testing and comparison
 
 import sys
 import os
-sys.path.append(os.path.abspath('src'))
 
+# Add the src directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_path = os.path.join(current_dir, 'src')
+sys.path.insert(0, src_path)
+
+# Now import from the correct locations
 from activity4.simulation import MountainRescueSimulation, OperationMode
 
 
@@ -16,7 +21,7 @@ def run_all_modes():
     results = {}
     
     # Run Basic Mode
-    print("\n📍 Running BASIC MODE...")
+    print("\n Running BASIC MODE...")
     basic_sim = MountainRescueSimulation(
         num_terrain_robots=3,
         num_drones=2,
@@ -39,19 +44,28 @@ def run_all_modes():
     )
     results['extended'] = extended_sim.run_simulation(visualise=False, step_delay=0)
     
-    # Run Novel Mode
-    print("\n🧠 Running NOVEL MODE with Q-Learning...")
-    novel_sim = MountainRescueSimulation(
-        num_terrain_robots=3,
-        num_drones=2,
-        num_missing_persons=5,
-        max_simulation_steps=300,
-        operation_mode=OperationMode.NOVEL,
-        spawn_new_persons=True,
-        spawn_interval=50,
-        enable_learning=True
-    )
-    results['novel'] = novel_sim.run_simulation(visualise=False, step_delay=0)
+    # Run Novel Mode - with multiple episodes to show learning
+    print("\n Running NOVEL MODE with Q-Learning...")
+    print("Running 3 episodes to demonstrate learning improvement...")
+    
+    novel_results = []
+    for episode in range(3):
+        print(f"\n--- Episode {episode + 1} ---")
+        novel_sim = MountainRescueSimulation(
+            num_terrain_robots=3,
+            num_drones=2,
+            num_missing_persons=5,
+            max_simulation_steps=300,
+            operation_mode=OperationMode.NOVEL,
+            spawn_new_persons=True,
+            spawn_interval=50,
+            enable_learning=True
+        )
+        episode_result = novel_sim.run_simulation(visualise=False, step_delay=0)
+        novel_results.append(episode_result)
+    
+    # Use the last episode for comparison (most learned)
+    results['novel'] = novel_results[-1]
     
     # Display comprehensive comparison
     print("\n" + "="*90)
@@ -76,6 +90,16 @@ def run_all_modes():
             value = results[mode].get(metric_key, 0)
             print(f"{formatter(value):>15}", end="")
         print()
+    
+    # Show learning progression for Novel mode
+    print("\n" + "-"*90)
+    print("NOVEL MODE LEARNING PROGRESSION:")
+    print(f"{'Episode':<10} {'Success Rate':>15} {'Avg Rescue Time':>18} {'Battery Eff':>15}")
+    print("-"*60)
+    for i, episode_result in enumerate(novel_results):
+        print(f"{i+1:<10} {episode_result['success_rate']*100:>14.1f}% "
+              f"{episode_result['avg_rescue_time']:>17.1f} "
+              f"{episode_result['battery_efficiency']:>15.4f}")
     
     # Communication metrics
     if results['extended'].get('communication_stats') or results['novel'].get('communication_stats'):
@@ -105,37 +129,58 @@ def run_all_modes():
     print("PERFORMANCE IMPROVEMENTS:")
     
     # Extended vs Basic
-    rescue_time_improvement_1 = ((results['basic']['avg_rescue_time'] - results['extended']['avg_rescue_time']) / 
-                                results['basic']['avg_rescue_time'] * 100)
-    battery_eff_improvement_1 = ((results['extended']['battery_efficiency'] - results['basic']['battery_efficiency']) / 
-                                results['basic']['battery_efficiency'] * 100)
+    if results['basic']['avg_rescue_time'] > 0:
+        rescue_time_improvement_1 = ((results['basic']['avg_rescue_time'] - results['extended']['avg_rescue_time']) / 
+                                    results['basic']['avg_rescue_time'] * 100)
+    else:
+        rescue_time_improvement_1 = 0
+        
+    if results['basic']['battery_efficiency'] > 0:
+        battery_eff_improvement_1 = ((results['extended']['battery_efficiency'] - results['basic']['battery_efficiency']) / 
+                                    results['basic']['battery_efficiency'] * 100)
+    else:
+        battery_eff_improvement_1 = 0
     
     print(f"Extended vs Basic:")
     print(f"  - Rescue Time: {rescue_time_improvement_1:.1f}% faster")
     print(f"  - Battery Efficiency: {battery_eff_improvement_1:.1f}% better")
     
     # Novel vs Extended
-    rescue_time_improvement_2 = ((results['extended']['avg_rescue_time'] - results['novel']['avg_rescue_time']) / 
-                                results['extended']['avg_rescue_time'] * 100)
-    battery_eff_improvement_2 = ((results['novel']['battery_efficiency'] - results['extended']['battery_efficiency']) / 
-                                results['extended']['battery_efficiency'] * 100)
+    if results['extended']['avg_rescue_time'] > 0:
+        rescue_time_improvement_2 = ((results['extended']['avg_rescue_time'] - results['novel']['avg_rescue_time']) / 
+                                    results['extended']['avg_rescue_time'] * 100)
+    else:
+        rescue_time_improvement_2 = 0
+        
+    if results['extended']['battery_efficiency'] > 0:
+        battery_eff_improvement_2 = ((results['novel']['battery_efficiency'] - results['extended']['battery_efficiency']) / 
+                                    results['extended']['battery_efficiency'] * 100)
+    else:
+        battery_eff_improvement_2 = 0
     
     print(f"\nNovel vs Extended:")
     print(f"  - Rescue Time: {rescue_time_improvement_2:.1f}% faster")
     print(f"  - Battery Efficiency: {battery_eff_improvement_2:.1f}% better")
     
     # Novel vs Basic (total improvement)
-    rescue_time_improvement_total = ((results['basic']['avg_rescue_time'] - results['novel']['avg_rescue_time']) / 
-                                    results['basic']['avg_rescue_time'] * 100)
-    battery_eff_improvement_total = ((results['novel']['battery_efficiency'] - results['basic']['battery_efficiency']) / 
-                                    results['basic']['battery_efficiency'] * 100)
+    if results['basic']['avg_rescue_time'] > 0:
+        rescue_time_improvement_total = ((results['basic']['avg_rescue_time'] - results['novel']['avg_rescue_time']) / 
+                                        results['basic']['avg_rescue_time'] * 100)
+    else:
+        rescue_time_improvement_total = 0
+        
+    if results['basic']['battery_efficiency'] > 0:
+        battery_eff_improvement_total = ((results['novel']['battery_efficiency'] - results['basic']['battery_efficiency']) / 
+                                        results['basic']['battery_efficiency'] * 100)
+    else:
+        battery_eff_improvement_total = 0
     
     print(f"\nNovel vs Basic (Total):")
     print(f"  - Rescue Time: {rescue_time_improvement_total:.1f}% faster")
     print(f"  - Battery Efficiency: {battery_eff_improvement_total:.1f}% better")
     
     print("\n" + "="*90)
-    print("✅ Full system demonstration complete!")
+    print(" Full system demonstration complete!")
     print("="*90)
 
 

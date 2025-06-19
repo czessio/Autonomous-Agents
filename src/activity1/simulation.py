@@ -5,6 +5,7 @@ import matplotlib.animation as animation
 import time
 from typing import List
 
+
 from environment import Environment
 from terrain_robot import TerrainRobot, RobotState
 from explorer_drone import ExplorerDrone, DroneState

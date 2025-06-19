@@ -29,6 +29,7 @@ class Message:
 class ExtendedCommunication:
     """Advanced communication system for Extended Mode operation"""
     
+    
     def __init__(self):
         # Message queues for each agent
         self.message_queues = {}
@@ -38,7 +39,8 @@ class ExtendedCommunication:
         self.found_persons = {}  # location -> {drone_id, urgency, timestamp}
         self.assigned_rescues = {}  # robot_id -> location
         self.completed_rescues = []
-        self.pending_locations = []  # Locations awaiting robot assignment
+        self.pending_locations = [] # Locations awaiting robot assignment
+        self.detected_locations = []
         
         # Communication metrics
         self.total_messages_sent = 0
@@ -48,6 +50,24 @@ class ExtendedCommunication:
         
         # Robot availability tracking
         self.robot_status = {}  # robot_id -> {'available': bool, 'battery': int}
+        
+        
+        
+            
+# fix, delete if doesn't work 
+     
+    def get_nearest_person_location(self, position):
+        if not self.detected_locations:
+            return None
+        # Manhattan distance used for simplicity
+        return min(self.detected_locations, key=lambda loc: abs(loc[0] - position[0]) + abs(loc[1] - position[1]))
+
+# fix, delete if doesn't work 
+    
+        
+        
+        
+        
     
     def register_agent(self, agent_id: str, agent_type: str) -> None:
         """Register an agent in the communication system"""
@@ -239,11 +259,17 @@ class BasicCommunication:
         self.waiting_drones = {}
         self.robot_targets = {}
     
-    def drone_found_person(self, location, drone_id):
-        """Basic mode: simple location reporting"""
+    def drone_found_person(self, drone_id: str, location: Tuple[int, int], 
+                        urgency: int, broadcast: bool = True) -> bool:
+        """Basic mode: simple location reporting with standard signature"""
         if location not in self.found_persons:
-            self.found_persons[location] = drone_id
-            print(f"📡 Drone {drone_id} found person at {location}")
+            self.found_persons[location] = {
+                'drone_id': drone_id,
+                'urgency': urgency,
+                'timestamp': time.time(),
+                'assigned': False
+            }
+            print(f"📡 Drone {drone_id} found person at {location} (urgency: {urgency})")
             return True
         return False
     

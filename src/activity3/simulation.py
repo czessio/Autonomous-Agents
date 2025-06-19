@@ -10,7 +10,8 @@ from enum import Enum
 # Import from activity1 (reusing existing components)
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'activity1'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 from activity1.environment import Environment
 from activity1.terrain_robot import TerrainRobot, RobotState
@@ -551,26 +552,26 @@ class MountainRescueSimulation:
         print(f"Persons Rescued: {report['persons_rescued']} / {report['persons_spawned']} spawned")
         print(f"Persons Remaining: {report['persons_remaining']}")
         
-        print(f"\n📊 KEY PERFORMANCE INDICATORS:")
+        print(f"\n KEY PERFORMANCE INDICATORS:")
         print(f"  Average Rescue Time: {report['avg_rescue_time']} steps")
         print(f"  Battery Efficiency: {report['battery_efficiency']:.3f} rescues/battery unit")
         print(f"  Total Battery Consumed: {report['total_battery_consumed']} units")
         
         if report['communication_stats']:
-            print(f"\n📡 COMMUNICATION STATISTICS:")
+            print(f"\n COMMUNICATION STATISTICS:")
             comm = report['communication_stats']
             print(f"  Total Messages: {comm.get('total_messages', 0)}")
             print(f"  Individual Messages: {comm.get('individual_messages', 0)}")
             print(f"  Broadcast Messages: {comm.get('broadcast_messages', 0)}")
             print(f"  Message Efficiency: {comm.get('message_efficiency', 0):.2%}")
         
-        print("\n🤖 TERRAIN ROBOT PERFORMANCE:")
+        print("\n TERRAIN ROBOT PERFORMANCE:")
         for robot_perf in report['robot_performance']:
             print(f"  Robot {robot_perf['id']}: {robot_perf['persons_rescued']} rescued, "
                   f"{robot_perf['battery_used']} battery used, "
                   f"{robot_perf['final_battery']}% remaining")
         
-        print("\n🚁 DRONE PERFORMANCE:")
+        print("\n DRONE PERFORMANCE:")
         for drone_perf in report['drone_performance']:
             print(f"  Drone {drone_perf['id']}: {drone_perf['persons_found']} found, "
                   f"{drone_perf['areas_explored']} areas explored, "
@@ -581,18 +582,19 @@ class MountainRescueSimulation:
 
 def main():
     """Main function to run the simulation with mode selection"""
-    print("\n🏔️  MOUNTAIN RESCUE SIMULATION - ACTIVITY 3")
+    print("\n  MOUNTAIN RESCUE SIMULATION - ACTIVITY 3")
     print("="*50)
     print("Select operation mode:")
     print("1. Basic Mode (Activity 1 behavior)")
     print("2. Extended Mode (Advanced communication)")
     print("3. Mode Comparison (Run both modes)")
-    
+
+    report = None  # Ensure report is always defined
+
     try:
         choice = input("\nEnter choice (1/2/3): ").strip()
-        
+
         if choice == "1":
-            # Basic Mode
             simulation = MountainRescueSimulation(
                 num_terrain_robots=3,
                 num_drones=2,
@@ -600,30 +602,25 @@ def main():
                 max_simulation_steps=250,
                 operation_mode=OperationMode.BASIC
             )
-            
             viz_choice = input("Enable visualization? (y/n): ").strip().lower()
             report = simulation.run_simulation(visualise=(viz_choice == 'y'), step_delay=0.05)
-            
+
         elif choice == "2":
-            # Extended Mode
             simulation = MountainRescueSimulation(
                 num_terrain_robots=3,
                 num_drones=2,
-                num_missing_persons=4,  # Start with fewer
+                num_missing_persons=4,
                 max_simulation_steps=300,
                 operation_mode=OperationMode.EXTENDED,
                 spawn_new_persons=True,
                 spawn_interval=40
             )
-            
             viz_choice = input("Enable visualization? (y/n): ").strip().lower()
             report = simulation.run_simulation(visualise=(viz_choice == 'y'), step_delay=0.05)
-            
+
         elif choice == "3":
-            # Comparison Mode
             print("\n📊 Running comparison between Basic and Extended modes...")
-            
-            # Run Basic Mode
+
             print("\n--- BASIC MODE ---")
             basic_sim = MountainRescueSimulation(
                 num_terrain_robots=3,
@@ -633,8 +630,7 @@ def main():
                 operation_mode=OperationMode.BASIC
             )
             basic_report = basic_sim.run_simulation(visualise=False, step_delay=0)
-            
-            # Run Extended Mode
+
             print("\n--- EXTENDED MODE ---")
             extended_sim = MountainRescueSimulation(
                 num_terrain_robots=3,
@@ -646,8 +642,7 @@ def main():
                 spawn_interval=40
             )
             extended_report = extended_sim.run_simulation(visualise=False, step_delay=0)
-            
-            # Compare results
+
             print("\n" + "="*60)
             print("COMPARISON RESULTS")
             print("="*60)
@@ -659,18 +654,19 @@ def main():
             print(f"{'Total Battery Used':<30} {basic_report['total_battery_consumed']:>15} {extended_report['total_battery_consumed']:>15}")
             print(f"{'Persons Rescued':<30} {basic_report['persons_rescued']:>15} {extended_report['persons_rescued']:>15}")
             print("="*60)
-            
+
         else:
             print("Invalid choice. Running Basic Mode by default.")
             simulation = MountainRescueSimulation()
             report = simulation.run_simulation(visualise=True)
-            
+
     except KeyboardInterrupt:
         print("\nSimulation interrupted by user")
     except Exception as e:
         print(f"\nSimulation error: {e}")
-    
+
     return report
+
 
 
 if __name__ == "__main__":

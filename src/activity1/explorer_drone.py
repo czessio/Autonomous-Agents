@@ -113,7 +113,7 @@ class ExplorerDrone:
                 
                 # Report to communication system
                 if communication:
-                    communication.drone_found_person(self.position, self.drone_id)
+                    communication.drone_found_person(self.drone_id, self.position, urgency=1)
                 
                 self.state = DroneState.FOUND_PERSON
                 return

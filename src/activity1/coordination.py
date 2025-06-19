@@ -1,5 +1,8 @@
 # Communication system for mountain rescue simulation - Basic Mode coordination
 
+from typing import Tuple, List, Dict, Optional
+import time
+
 class BasicCommunication:
     """Simple communication system for Basic Mode - drones broadcast person locations"""
     
@@ -7,12 +10,21 @@ class BasicCommunication:
         self.found_persons = {}  # Maps location to drone_id that found it
         self.waiting_drones = {}  # Maps location to drone waiting there
         self.robot_targets = {}  # Maps robot_id to target location
-    
-    def drone_found_person(self, location, drone_id):
-        """Drone reports finding a person"""
+        
+    def drone_found_person(self, drone_id: str, location: Tuple[int, int], 
+                        urgency: int, broadcast: bool = True) -> bool:
+        """Drone reports finding a person (compatible with extended logic)"""
         if location not in self.found_persons:
-            self.found_persons[location] = drone_id
-            print(f"📡 Drone {drone_id} broadcasts: Person found at {location}")
+            self.found_persons[location] = {
+                'drone_id': drone_id,
+                'urgency': urgency,
+                'timestamp': time.time(),
+                'assigned': False
+            }
+            self.pending_locations.append(location)
+
+            if broadcast:
+                print(f"📡 Drone {drone_id} broadcasts: Person found at {location} (urgency: {urgency})")
             return True
         return False
     

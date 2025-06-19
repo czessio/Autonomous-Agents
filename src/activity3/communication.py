@@ -29,7 +29,6 @@ class Message:
 class ExtendedCommunication:
     """Advanced communication system for Extended Mode operation"""
     
-    
     def __init__(self):
         # Message queues for each agent
         self.message_queues = {}
@@ -39,8 +38,9 @@ class ExtendedCommunication:
         self.found_persons = {}  # location -> {drone_id, urgency, timestamp}
         self.assigned_rescues = {}  # robot_id -> location
         self.completed_rescues = []
-        self.pending_locations = [] # Locations awaiting robot assignment
+        self.pending_locations = []  # Locations awaiting robot assignment
         self.detected_locations = []
+        self.waiting_drones = {}  # location -> drone_id (for Basic Mode compatibility)
         
         # Communication metrics
         self.total_messages_sent = 0
@@ -50,25 +50,63 @@ class ExtendedCommunication:
         
         # Robot availability tracking
         self.robot_status = {}  # robot_id -> {'available': bool, 'battery': int}
+        self.robot_targets = {}  # robot_id -> target location (Basic Mode compatibility)
+    
+    # Basic Mode compatibility methods
+    def drone_waiting_at(self, location: Tuple[int, int], drone_id: str) -> None:
+        """Drone reports it's waiting at a person location (Basic Mode compatibility)"""
+        self.waiting_drones[location] = drone_id
+    
+    def drone_stopped_waiting(self, location: Tuple[int, int]) -> None:
+        """Drone stops waiting at location (Basic Mode compatibility)"""
+        if location in self.waiting_drones:
+            del self.waiting_drones[location]
+    
+    def is_robot_near_location(self, robot_position: Tuple[int, int], 
+                              target_location: Tuple[int, int], threshold: int = 1) -> bool:
+        """Check if robot is near target location (Basic Mode compatibility)"""
+        if not target_location:
+            return False
+        distance = abs(robot_position[0] - target_location[0]) + abs(robot_position[1] - target_location[1])
+        return distance <= threshold
+    
+    def assign_robot_to_location(self, robot_id: str, location: Tuple[int, int]) -> None:
+        """Assign a robot to go to a specific location (Basic Mode compatibility)"""
+        self.robot_targets[robot_id] = location
+        self.assign_robot_to_rescue(f"robot_{robot_id}", location)
+        print(f"📡 Robot {robot_id} assigned to rescue person at {location}")
+    
+    def robot_completed_rescue(self, robot_id: str, location: Tuple[int, int]) -> None:
+        """Robot reports completing a rescue (Basic Mode compatibility)"""
+        if robot_id in self.robot_targets:
+            del self.robot_targets[robot_id]
+        self.complete_rescue(f"robot_{robot_id}", location)
+        print(f"📡 Robot {robot_id} completed rescue at {location}")
+    
+    def get_nearest_person_location(self, robot_position: Tuple[int, int]) -> Optional[Tuple[int, int]]:
+        """Get nearest unassigned person location for a robot"""
+        available_locations = []
         
+        # Check pending locations first
+        for location in self.pending_locations:
+            if location not in self.assigned_rescues.values():
+                available_locations.append(location)
         
+        # Also check found persons
+        for location in self.found_persons.keys():
+            if location not in self.assigned_rescues.values() and location not in available_locations:
+                available_locations.append(location)
         
-            
-# fix, delete if doesn't work 
-     
-    def get_nearest_person_location(self, position):
-        if not self.detected_locations:
+        if not available_locations:
             return None
-        # Manhattan distance used for simplicity
-        return min(self.detected_locations, key=lambda loc: abs(loc[0] - position[0]) + abs(loc[1] - position[1]))
-
-# fix, delete if doesn't work 
+        
+        # Find nearest location using Manhattan distance
+        def distance(loc):
+            return abs(loc[0] - robot_position[0]) + abs(loc[1] - robot_position[1])
+        
+        return min(available_locations, key=distance)
     
-        
-        
-        
-        
-    
+    # Extended Mode methods
     def register_agent(self, agent_id: str, agent_type: str) -> None:
         """Register an agent in the communication system"""
         self.message_queues[agent_id] = []
@@ -134,7 +172,11 @@ class ExtendedCommunication:
             'assigned': False
         }
         
-        self.pending_locations.append(location)
+        if location not in self.pending_locations:
+            self.pending_locations.append(location)
+        
+        if location not in self.detected_locations:
+            self.detected_locations.append(location)
         
         if broadcast:
             # Broadcast to all robots
@@ -184,6 +226,13 @@ class ExtendedCommunication:
             )
             
             return True
+        elif location in self.pending_locations:
+            # Handle case where person info isn't in found_persons yet
+            self.assigned_rescues[robot_id] = location
+            if robot_id in self.robot_status:
+                self.robot_status[robot_id]['available'] = False
+            self.pending_locations.remove(location)
+            return True
         return False
     
     def complete_rescue(self, robot_id: str, location: Tuple[int, int]) -> None:
@@ -198,7 +247,14 @@ class ExtendedCommunication:
             self.completed_rescues.append(rescue_info)
             del self.found_persons[location]
         
-        self.robot_status[robot_id]['available'] = True
+        if location in self.waiting_drones:
+            del self.waiting_drones[location]
+        
+        if location in self.detected_locations:
+            self.detected_locations.remove(location)
+        
+        if robot_id in self.robot_status:
+            self.robot_status[robot_id]['available'] = True
         
         # Broadcast completion
         self.broadcast_message(
@@ -216,7 +272,6 @@ class ExtendedCommunication:
     
     def _find_nearest_available_robot(self, location: Tuple[int, int]) -> Optional[str]:
         """Find the nearest available robot with sufficient battery"""
-        # This is a placeholder - actual implementation would need robot positions
         available_robots = [
             robot_id for robot_id, status in self.robot_status.items()
             if status['available'] and status['battery'] > 30
@@ -224,6 +279,7 @@ class ExtendedCommunication:
         
         if available_robots:
             # For now, return first available robot
+            # In a full implementation, would calculate actual distances
             return available_robots[0]
         return None
     
@@ -258,6 +314,7 @@ class BasicCommunication:
         self.found_persons = {}
         self.waiting_drones = {}
         self.robot_targets = {}
+        self.pending_locations = []  # Add this for compatibility
     
     def drone_found_person(self, drone_id: str, location: Tuple[int, int], 
                         urgency: int, broadcast: bool = True) -> bool:
@@ -269,6 +326,8 @@ class BasicCommunication:
                 'timestamp': time.time(),
                 'assigned': False
             }
+            if location not in self.pending_locations:
+                self.pending_locations.append(location)
             print(f"📡 Drone {drone_id} found person at {location} (urgency: {urgency})")
             return True
         return False
@@ -310,6 +369,8 @@ class BasicCommunication:
             del self.found_persons[location]
         if location in self.waiting_drones:
             del self.waiting_drones[location]
+        if location in self.pending_locations:
+            self.pending_locations.remove(location)
     
     def is_robot_near_location(self, robot_position, target_location, threshold=1):
         """Check if robot near target"""

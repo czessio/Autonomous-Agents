@@ -8,7 +8,7 @@ from typing import Tuple, Optional, List
 import numpy as np
 
 from activity1.terrain_robot import TerrainRobot, RobotState
-from q_learning import QLearningAgent
+from activity4.q_learning import QLearningAgent
 
 
 class LearningTerrainRobot(TerrainRobot):

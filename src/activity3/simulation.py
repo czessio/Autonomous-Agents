@@ -19,7 +19,7 @@ from activity1.explorer_drone import ExplorerDrone, DroneState
 
 
 # Import new communication system
-from communication import BasicCommunication, ExtendedCommunication, MessageType
+from activity3.communication import BasicCommunication, ExtendedCommunication, MessageType
 
 
 class OperationMode(Enum):

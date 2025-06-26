@@ -17,8 +17,8 @@ from activity1.explorer_drone import ExplorerDrone, DroneState
 from activity3.communication import BasicCommunication, ExtendedCommunication, MessageType
 
 # Import Novel Mode components
-from learning_robot import LearningTerrainRobot
-from q_learning import CollectiveQLearning
+from activity4.learning_robot import LearningTerrainRobot
+from activity4.q_learning import CollectiveQLearning
 
 
 class OperationMode(Enum):

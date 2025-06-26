@@ -6,10 +6,10 @@ import time
 from typing import List
 
 
-from environment import Environment
-from terrain_robot import TerrainRobot, RobotState
-from explorer_drone import ExplorerDrone, DroneState
-from coordination import BasicCommunication
+from activity1.environment import Environment
+from activity1.terrain_robot import TerrainRobot, RobotState
+from activity1.explorer_drone import ExplorerDrone, DroneState
+from activity1.coordination import BasicCommunication
 
 
 class MountainRescueSimulation:

@@ -209,6 +209,7 @@ class MountainRescueSimulation:
         self._check_mission_status()
         self._update_statistics()
     
+    
     def _handle_advanced_mode_robot(self, robot) -> None:
         """Handle robot behavior in Extended/Novel modes"""
         robot_id = f"robot_{robot.robot_id}"
@@ -219,8 +220,12 @@ class MountainRescueSimulation:
         # Process messages
         for message in messages:
             if message.msg_type in [MessageType.PERSON_FOUND, MessageType.RESCUE_REQUEST]:
-                if robot.state == RobotState.AT_BASE and robot.has_first_aid_kit and robot.current_battery > 50:
+                # only assign if no current assignment, have kit, and enough battery
+                if robot.assigned_location is None \
+                and robot.has_first_aid_kit \
+                and robot.current_battery > 50:
                     if self.communication.assign_robot_to_rescue(robot_id, message.location):
+                        # CRITICAL: Set assigned_location for the robot
                         robot.assigned_location = message.location
                         robot.state = RobotState.SEARCHING
                         
@@ -228,15 +233,24 @@ class MountainRescueSimulation:
                         if isinstance(robot, LearningTerrainRobot):
                             robot.q_agent.rescue_success_map[message.location] += 0.1  # Anticipatory reward
                         
-                        print(f" Robot {robot.robot_id} responding to rescue at {message.location}")
-        
-        # Update robot
+                        print(f"Robot {robot.robot_id} responding to rescue at {message.location}")
+                        # stop handling any further broadcasts this step
+                        break
+
+        # Update robot - this will call the robot's update method
         robot.update(self.environment, self.current_step, self.communication)
         
-        # Check rescue completion
-        if hasattr(robot, '_last_rescued_location'):
+        # Check if robot just completed a rescue
+        if hasattr(robot, 'target_person') \
+        and robot.target_person is None \
+        and hasattr(robot, '_last_rescued_location'):
             self.communication.complete_rescue(robot_id, robot._last_rescued_location)
             delattr(robot, '_last_rescued_location')
+
+    
+    
+    
+    
     
     def _update_statistics(self) -> None:
         """Update simulation statistics including learning metrics"""

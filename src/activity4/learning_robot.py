@@ -121,10 +121,11 @@ class LearningTerrainRobot(TerrainRobot):
                 self.stuck_counter = 0
                 print(f" Learning Robot {self.robot_id} exploring from base (ε={self.q_agent.exploration_rate:.3f})")
     
+ 
+    
+    
     def _handle_searching_state(self, environment, communication=None) -> None:
-        """
-        Override searching behavior to use Q-learning for decision making.
-        """
+        """Override searching behavior to use Q-learning for decision making."""
         # Check if person found at current location
         if environment.person_at_location(*self.position):
             self.target_person = self.position
@@ -132,8 +133,8 @@ class LearningTerrainRobot(TerrainRobot):
             print(f" Learning Robot {self.robot_id} found person at {self.position}!")
             return
         
-        # If robot has assigned location, navigate there intelligently
-        if self.assigned_location:
+        # CRITICAL FIX: Check for assigned_location from parent class
+        if hasattr(self, 'assigned_location') and self.assigned_location:
             if communication and communication.is_robot_near_location(self.position, self.assigned_location):
                 if environment.person_at_location(*self.assigned_location):
                     self.target_person = self.assigned_location
@@ -150,6 +151,10 @@ class LearningTerrainRobot(TerrainRobot):
         # No assigned location - use Q-learning for exploration
         self._explore_with_q_learning(environment)
     
+    
+        
+
+
     def _handle_delivering_state(self, environment, communication=None) -> None:
         """Handle first-aid delivery to found person"""
         if self.target_person and self.position == self.target_person:
@@ -159,21 +164,37 @@ class LearningTerrainRobot(TerrainRobot):
                 self.persons_rescued += 1
                 self.successful_rescues += 1  # Track for learning
                 
-                # Store the location for learning
+                # CRITICAL: Store the location for communication system
                 self._last_rescued_location = self.position
                 
-                # Notify communication system
-                if communication and self.assigned_location:
-                    communication.robot_completed_rescue(self.robot_id, self.assigned_location)
+                # Large reward for successful rescue
+                if self.learning_enabled and self.previous_state_key:
+                    reward = 100.0  # Big reward for rescue
+                    self.episode_rewards.append(reward)
+                    # Update Q-value immediately
+                    self.q_agent.q_table[self.previous_state_key][self.previous_action] += reward * 0.1
+                
+                # Notify communication system if assigned
+                if hasattr(self, 'assigned_location') and self.assigned_location == self.position:
+                    self.assigned_location = None
                 
                 self.target_person = None
-                self.assigned_location = None
                 self.state = RobotState.RETURNING
-                print(f" Learning Robot {self.robot_id} rescued person, returning to base")
+                print(f" Learning Robot {self.robot_id} rescued person at {self.position}!")
         else:
             # Move towards target person using Q-learning
             if self.target_person:
                 self._move_with_q_learning(self.target_person, environment)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     def _handle_returning_state(self, environment) -> None:
         """Handle return to base station"""

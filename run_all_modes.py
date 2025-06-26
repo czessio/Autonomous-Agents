@@ -32,7 +32,7 @@ def run_all_modes():
     results['basic'] = basic_sim.run_simulation(visualise=False, step_delay=0)
     
     # Run Extended Mode
-    print("\n📡 Running EXTENDED MODE...")
+    print("\n Running EXTENDED MODE...")
     extended_sim = MountainRescueSimulation(
         num_terrain_robots=3,
         num_drones=2,

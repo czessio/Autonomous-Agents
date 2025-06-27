@@ -24,10 +24,15 @@ class Message:
     urgency: Optional[int]
     timestamp: float
     data: Optional[Dict] = None
+    
+    
+
 
 
 class ExtendedCommunication:
     """Advanced communication system for Extended Mode operation"""
+    
+    MessageType = MessageType
     
     def __init__(self):
         # Message queues for each agent

@@ -50,6 +50,21 @@ class LearningTerrainRobot(TerrainRobot):
         
         print(f"Learning Robot {robot_id} initialised with Q-learning capabilities")
     
+    
+    
+    
+    def enable_learning(self, enabled: bool) -> None:
+        """Enable or disable Q-learning for this robot"""
+        self.learning_enabled = enabled
+        if enabled:
+            print(f"Learning enabled for Robot {self.robot_id}")
+        else:
+            print(f"Learning disabled for Robot {self.robot_id}")
+    
+    
+    
+    
+    
     def update(self, environment, current_step=0, communication=None) -> None:
         """
         Enhanced update method with Q-learning integration.

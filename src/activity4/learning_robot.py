@@ -1,4 +1,4 @@
-# Learning terrain robot with Q-learning capabilities for Novel Mode - FIXED VERSION
+# Learning terrain robot with Q-learning capabilities for Novel Mode
 
 import sys
 import os
@@ -33,6 +33,7 @@ class LearningTerrainRobot(TerrainRobot):
         # Q-learning components
         self.q_agent = q_learning_agent
         self.learning_enabled = True
+        self.learning_mode = "hybrid"  # "pure_q", "hybrid", or "rule_based"
         
         # Learning state tracking
         self.previous_state_key = None
@@ -47,7 +48,7 @@ class LearningTerrainRobot(TerrainRobot):
         self.failed_attempts = 0
         self.learning_episodes_completed = 0
         
-        print(f" Learning Robot {robot_id} initialized with Q-learning capabilities")
+        print(f"Learning Robot {robot_id} initialised with Q-learning capabilities")
     
     def update(self, environment, current_step=0, communication=None) -> None:
         """
@@ -60,160 +61,61 @@ class LearningTerrainRobot(TerrainRobot):
         old_position = self.position
         old_state = self.state
         
-        # Battery management: drain only when not at base
-        if self.position != self.base_position:
-            self._drain_battery(environment)
-        elif self.state == RobotState.AT_BASE:
-            # Recharge when at base
-            self.current_battery = min(self.max_battery, self.current_battery + self.recharge_rate)
-        
-        # Check battery level
-        if self._is_battery_low() and self.state not in [RobotState.BATTERY_LOW, RobotState.RETURNING, RobotState.AT_BASE]:
-            self.state = RobotState.BATTERY_LOW
-            self.target_person = None
-            self.assigned_location = None
-            print(f" Learning Robot {self.robot_id} battery low ({self.current_battery}%), returning to base")
-        
-        # Execute behaviour based on current state - OVERRIDE parent behavior
-        if self.state == RobotState.AT_BASE:
-            self._handle_at_base_state_learning(environment, communication)
-        elif self.state == RobotState.SEARCHING:
-            self._handle_searching_state(environment, communication)
-        elif self.state == RobotState.DELIVERING:
-            self._handle_delivering_state(environment, communication)
-        elif self.state == RobotState.RETURNING:
-            self._handle_returning_state(environment)
-        elif self.state == RobotState.BATTERY_LOW:
-            self._handle_battery_low_state(environment)
+        # Call parent update - this handles basic behaviour
+        super().update(environment, current_step, communication)
         
         # Learning and reward calculation after action
         if self.learning_enabled and self.state != RobotState.AT_BASE:
             self._update_learning(old_position, old_battery, old_state, environment)
     
-    def _handle_at_base_state_learning(self, environment, communication=None) -> None:
-        """
-        Enhanced base state handling for learning robots.
-        """
-        # Complete learning episode if just returned
-        if self.previous_state_key and self.episode_rewards:
-            self._complete_learning_episode()
-        
-        # Only leave base if battery is above minimum threshold and has first aid kit
-        if self.current_battery > self.min_leave_threshold and self.has_first_aid_kit:
-            # Check for assignments from communication system
-            if communication and hasattr(self, 'assigned_location') and self.assigned_location:
-                self.state = RobotState.SEARCHING
-                print(f" Learning Robot {self.robot_id} leaving base for assigned location {self.assigned_location}")
-                return
-            
-            # Use Q-learning to decide whether to leave base
-            # Create a special state for "at base with no assignment"
-            state_key = self.q_agent.get_state_key(
-                position=self.position,
-                target=None,
-                battery_level=self.current_battery,
-                has_kit=self.has_first_aid_kit
-            )
-            
-            # High exploration early on means robots will leave base
-            if np.random.random() < max(0.3, self.q_agent.exploration_rate):
-                self.state = RobotState.SEARCHING
-                self.stuck_counter = 0
-                print(f" Learning Robot {self.robot_id} exploring from base (ε={self.q_agent.exploration_rate:.3f})")
-    
- 
-    
-    
     def _handle_searching_state(self, environment, communication=None) -> None:
-        """Override searching behavior to use Q-learning for decision making."""
+        """Override searching behaviour with hybrid decision model."""
         # Check if person found at current location
         if environment.person_at_location(*self.position):
             self.target_person = self.position
             self.state = RobotState.DELIVERING
-            print(f" Learning Robot {self.robot_id} found person at {self.position}!")
+            print(f"Learning Robot {self.robot_id} found person at {self.position}!")
             return
         
-        # CRITICAL FIX: Check for assigned_location from parent class
-        if hasattr(self, 'assigned_location') and self.assigned_location:
+        # Check for assigned location from communication system
+        if self.assigned_location:
             if communication and communication.is_robot_near_location(self.position, self.assigned_location):
                 if environment.person_at_location(*self.assigned_location):
                     self.target_person = self.assigned_location
                     self.state = RobotState.DELIVERING
+                    print(f"Learning Robot {self.robot_id} reached assigned person at {self.assigned_location}")
                     return
                 else:
-                    print(f" Robot {self.robot_id} arrived but person already rescued")
+                    print(f"Learning Robot {self.robot_id} arrived but person at {self.assigned_location} already rescued")
                     self.assigned_location = None
             else:
-                # Use Q-learning to navigate to assigned location
-                self._move_with_q_learning(self.assigned_location, environment)
+                # Use hybrid approach to move towards assigned location
+                if self.learning_mode == "hybrid":
+                    self._move_with_hybrid_intelligence(self.assigned_location, environment)
+                else:
+                    self._move_towards_target(self.assigned_location, environment)
                 return
         
-        # No assigned location - use Q-learning for exploration
-        self._explore_with_q_learning(environment)
+        # No assigned location - explore using Q-learning
+        if self.learning_mode in ["pure_q", "hybrid"]:
+            self._explore_with_q_learning(environment)
+        else:
+            self._move_randomly(environment)
     
-    
+    def _move_with_hybrid_intelligence(self, target: Tuple[int, int], environment) -> None:
+        """
+        Hybrid approach: Use Q-learning with rule-based override for urgent situations.
+        """
+        # Calculate urgency based on distance and battery
+        distance = abs(self.position[0] - target[0]) + abs(self.position[1] - target[1])
+        urgency = distance / self.current_battery if self.current_battery > 0 else 1.0
         
-
-
-    def _handle_delivering_state(self, environment, communication=None) -> None:
-        """Handle first-aid delivery to found person"""
-        if self.target_person and self.position == self.target_person:
-            # Deliver first aid
-            if environment.rescue_person(*self.position):
-                self.has_first_aid_kit = False
-                self.persons_rescued += 1
-                self.successful_rescues += 1  # Track for learning
-                
-                # CRITICAL: Store the location for communication system
-                self._last_rescued_location = self.position
-                
-                # Large reward for successful rescue
-                if self.learning_enabled and self.previous_state_key:
-                    reward = 100.0  # Big reward for rescue
-                    self.episode_rewards.append(reward)
-                    # Update Q-value immediately
-                    self.q_agent.q_table[self.previous_state_key][self.previous_action] += reward * 0.1
-                
-                # Notify communication system if assigned
-                if hasattr(self, 'assigned_location') and self.assigned_location == self.position:
-                    self.assigned_location = None
-                
-                self.target_person = None
-                self.state = RobotState.RETURNING
-                print(f" Learning Robot {self.robot_id} rescued person at {self.position}!")
+        # If urgent, use direct pathfinding
+        if urgency > 0.3 or self.current_battery < 40:
+            self._move_towards_target(target, environment)
         else:
-            # Move towards target person using Q-learning
-            if self.target_person:
-                self._move_with_q_learning(self.target_person, environment)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    def _handle_returning_state(self, environment) -> None:
-        """Handle return to base station"""
-        if self.position == self.base_position:
-            # Arrived at base
-            self.has_first_aid_kit = True  # Restock first aid kit
-            self.state = RobotState.AT_BASE
-        else:
-            # Move towards base using Q-learning
-            self._move_with_q_learning(self.base_position, environment)
-    
-    def _handle_battery_low_state(self, environment) -> None:
-        """Handle emergency return when battery is low"""
-        if self.position == self.base_position:
-            self.state = RobotState.AT_BASE
-            print(f" Learning Robot {self.robot_id} returned to base for recharging")
-        else:
-            # Move towards base urgently using Q-learning
-            self._move_with_q_learning(self.base_position, environment)
+            # Use Q-learning for efficient path
+            self._move_with_q_learning(target, environment)
     
     def _move_with_q_learning(self, target: Tuple[int, int], environment) -> None:
         """
@@ -263,30 +165,8 @@ class LearningTerrainRobot(TerrainRobot):
             self.stuck_counter += 1
             return
         
-        # Get learned preferences for next positions
-        possible_next_positions = [self._get_position_from_action(action) 
-                                  for action in valid_actions]
-        preferences = self.q_agent.get_learned_path_preference(
-            self.position, possible_next_positions
-        )
-        
-        # Prioritize mountain areas during exploration
-        mountain_bonus_positions = []
-        for i, pos in enumerate(possible_next_positions):
-            if environment.is_mountain_area(*pos):
-                mountain_bonus_positions.append((i, pos))
-        
-        # Choose action
-        if np.random.random() < self.q_agent.exploration_rate:
-            # Exploration: prefer mountain areas
-            if mountain_bonus_positions and np.random.random() < 0.7:
-                idx, _ = mountain_bonus_positions[np.random.randint(len(mountain_bonus_positions))]
-                action = valid_actions[idx]
-            else:
-                action = np.random.choice(valid_actions)
-        else:
-            # Exploitation: use Q-learning
-            action = self.q_agent.choose_action(state_key, valid_actions, self.position)
+        # Choose action balancing exploration and exploitation
+        action = self.q_agent.choose_action(state_key, valid_actions, self.position)
         
         # Store for learning
         self.previous_state_key = state_key
@@ -343,6 +223,37 @@ class LearningTerrainRobot(TerrainRobot):
             self._update_position(new_position)
             self.total_distance_traveled += 1
     
+    def _handle_delivering_state(self, environment, communication=None) -> None:
+        """Enhanced delivery with learning rewards."""
+        if self.target_person and self.position == self.target_person:
+            # Deliver first aid
+            if environment.rescue_person(*self.position):
+                self.has_first_aid_kit = False
+                self.persons_rescued += 1
+                self.successful_rescues += 1
+                
+                # Store location for communication
+                self._last_rescued_location = self.position
+                
+                # Large reward for successful rescue
+                if self.learning_enabled and self.previous_state_key:
+                    reward = 100.0
+                    self.episode_rewards.append(reward)
+                    # Immediate Q-value boost for successful rescue
+                    self.q_agent.q_table[self.previous_state_key][self.previous_action] += reward * 0.1
+                
+                self.target_person = None
+                self.assigned_location = None
+                self.state = RobotState.RETURNING
+                print(f"Learning Robot {self.robot_id} rescued person, returning to base")
+        else:
+            # Move towards target person
+            if self.target_person:
+                if self.learning_mode == "hybrid":
+                    self._move_with_hybrid_intelligence(self.target_person, environment)
+                else:
+                    self._move_towards_target(self.target_person, environment)
+    
     def _update_learning(self, old_position: Tuple[int, int], old_battery: int,
                         old_state: RobotState, environment) -> None:
         """
@@ -396,7 +307,7 @@ class LearningTerrainRobot(TerrainRobot):
             valid_next_actions=valid_next_actions
         )
         
-        # Check for episode end (returned to base)
+        # Check for episode end
         if self.state == RobotState.AT_BASE and old_state != RobotState.AT_BASE:
             self._complete_learning_episode()
     
@@ -408,9 +319,9 @@ class LearningTerrainRobot(TerrainRobot):
             total_episode_reward = sum(self.episode_rewards)
             avg_reward = total_episode_reward / len(self.episode_rewards)
             
-            print(f" Robot {self.robot_id} completed learning episode {self.learning_episodes_completed}:")
-            print(f"   Total reward: {total_episode_reward:.2f}, Avg reward: {avg_reward:.2f}")
-            print(f"   Exploration rate: {self.q_agent.exploration_rate:.3f}")
+            print(f"Robot {self.robot_id} completed learning episode {self.learning_episodes_completed}:")
+            print(f"  Total reward: {total_episode_reward:.2f}, Avg reward: {avg_reward:.2f}")
+            print(f"  Exploration rate: {self.q_agent.exploration_rate:.3f}")
             
             # Decay exploration rate
             self.q_agent.decay_exploration_rate()
@@ -419,6 +330,12 @@ class LearningTerrainRobot(TerrainRobot):
             self.episode_rewards = []
             self.learning_episodes_completed += 1
             self.episode_start_position = self.position
+    
+    def set_learning_mode(self, mode: str) -> None:
+        """Set learning mode: 'pure_q', 'hybrid', or 'rule_based'"""
+        if mode in ["pure_q", "hybrid", "rule_based"]:
+            self.learning_mode = mode
+            print(f"Robot {self.robot_id} learning mode set to: {mode}")
     
     def get_learning_status(self) -> dict:
         """
@@ -429,6 +346,7 @@ class LearningTerrainRobot(TerrainRobot):
         learning_status = {
             **base_status,
             'learning_enabled': self.learning_enabled,
+            'learning_mode': self.learning_mode,
             'exploration_rate': self.q_agent.exploration_rate,
             'episodes_completed': self.learning_episodes_completed,
             'successful_rescues': self.successful_rescues,
@@ -439,25 +357,3 @@ class LearningTerrainRobot(TerrainRobot):
         }
         
         return learning_status
-    
-    def enable_learning(self, enabled: bool = True) -> None:
-        """Enable or disable learning."""
-        self.learning_enabled = enabled
-        print(f" Robot {self.robot_id} learning {'enabled' if enabled else 'disabled'}")
-    
-    def share_knowledge_with(self, other_robot: 'LearningTerrainRobot') -> None:
-        """
-        Share learned knowledge with another robot.
-        """
-        # Share terrain difficulty knowledge
-        for pos, difficulty in self.q_agent.terrain_difficulty.items():
-            if pos not in other_robot.q_agent.terrain_difficulty:
-                other_robot.q_agent.terrain_difficulty[pos] = difficulty
-        
-        # Share successful rescue locations
-        for pos, count in self.q_agent.rescue_success_map.items():
-            other_robot.q_agent.rescue_success_map[pos] = max(
-                other_robot.q_agent.rescue_success_map.get(pos, 0), count
-            )
-        
-        print(f" Robot {self.robot_id} shared knowledge with Robot {other_robot.robot_id}")

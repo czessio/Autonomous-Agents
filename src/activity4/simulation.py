@@ -124,6 +124,22 @@ class MountainRescueSimulation:
             if isinstance(self.communication, ExtendedCommunication):
                 self.communication.register_agent(f"drone_{i}", "drone")
         
+        
+        
+        
+        if self.operation_mode == OperationMode.NOVEL:
+            # Create coordinator agent
+            from activity4.coordinator_agent import CoordinatorAgent
+            coordinator_pos = (self.environment.width // 2, self.environment.height - 1)
+            self.coordinator = CoordinatorAgent(agent_id=0, position=coordinator_pos)
+            print(f"Coordinator Agent created at {coordinator_pos}")
+        else:
+            self.coordinator = None
+        
+        
+        
+            
+        
         # Mode-specific initialization
         if self.operation_mode == OperationMode.BASIC:
             for robot in self.terrain_robots:
@@ -196,6 +212,15 @@ class MountainRescueSimulation:
             if isinstance(self.communication, ExtendedCommunication):
                 messages = self.communication.get_messages(f"drone_{drone.drone_id}")
             drone.update(self.environment, self.current_step, self.communication)
+            
+            if self.coordinator:
+                self.coordinator.update(
+                    self.environment, 
+                    self.terrain_robots, 
+                    self.drones, 
+                    self.communication,
+                    self.current_step
+                )
         
         # Update robots
         for robot in self.terrain_robots:
@@ -220,30 +245,28 @@ class MountainRescueSimulation:
         # Process messages
         for message in messages:
             if message.msg_type in [MessageType.PERSON_FOUND, MessageType.RESCUE_REQUEST]:
-                # only assign if no current assignment, have kit, and enough battery
-                if robot.assigned_location is None \
-                and robot.has_first_aid_kit \
-                and robot.current_battery > 50:
-                    if self.communication.assign_robot_to_rescue(robot_id, message.location):
-                        # CRITICAL: Set assigned_location for the robot
-                        robot.assigned_location = message.location
-                        robot.state = RobotState.SEARCHING
-                        
-                        # Novel Mode: Log this for learning
-                        if isinstance(robot, LearningTerrainRobot):
-                            robot.q_agent.rescue_success_map[message.location] += 0.1  # Anticipatory reward
-                        
-                        print(f"Robot {robot.robot_id} responding to rescue at {message.location}")
-                        # stop handling any further broadcasts this step
-                        break
-
-        # Update robot - this will call the robot's update method
+                # Check if robot can respond
+                if robot.state == RobotState.AT_BASE and robot.has_first_aid_kit and robot.current_battery > 50:
+                    # Check if location not already assigned to this robot
+                    if not hasattr(robot, 'assigned_location') or robot.assigned_location is None:
+                        if self.communication.assign_robot_to_rescue(robot_id, message.location):
+                            # Set assigned location
+                            robot.assigned_location = message.location
+                            robot.state = RobotState.SEARCHING
+                            
+                            # Novel Mode: Update learning
+                            if isinstance(robot, LearningTerrainRobot):
+                                # Add anticipatory reward
+                                robot.q_agent.rescue_success_map[message.location] += 0.1
+                            
+                            print(f"Robot {robot.robot_id} responding to rescue at {message.location}")
+                            break  # Only handle one assignment per step
+        
+        # Update robot
         robot.update(self.environment, self.current_step, self.communication)
         
-        # Check if robot just completed a rescue
-        if hasattr(robot, 'target_person') \
-        and robot.target_person is None \
-        and hasattr(robot, '_last_rescued_location'):
+        # Check for completed rescue
+        if hasattr(robot, '_last_rescued_location'):
             self.communication.complete_rescue(robot_id, robot._last_rescued_location)
             delattr(robot, '_last_rescued_location')
 

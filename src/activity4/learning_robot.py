@@ -753,6 +753,67 @@ class LearningTerrainRobot(TerrainRobot):
         
         print(f"🤝 Robot {self.robot_id}: Adapting for better coordination")
     
+    
+    
+    
+    
+    
+    
+    def enable_learning(self, enable: bool = True) -> None:
+            """
+            Enable or disable learning functionality
+            """
+            self.learning_enabled = enable
+            if enable:
+                print(f"🧠 Robot {self.robot_id}: Learning enabled")
+            else:
+                print(f"⏸️ Robot {self.robot_id}: Learning disabled")
+    
+    def get_learning_status(self) -> Dict:
+        """
+        Get current learning status for monitoring
+        """
+        return {
+            'learning_enabled': self.learning_enabled,
+            'exploration_rate': self.q_agent.exploration_rate,
+            'episodes_completed': self.learning_episodes_completed,
+            'q_table_size': len(self.q_agent.q_table),
+            'total_distance': self.total_distance_traveled,
+            'id': self.robot_id,
+            'battery': self.current_battery,
+            'state': self.state.value,
+            'rescued': self.persons_rescued
+        }
+    
+    def get_enhanced_learning_status(self) -> Dict:
+        """
+        Get comprehensive learning status including hierarchical features
+        """
+        base_status = self.get_learning_status()
+        
+        enhanced_status = {
+            **base_status,
+            'strategic_role': self.strategic_role,
+            'coordination_level': self.coordination_level,
+            'strategic_compliance_score': self.strategic_compliance_score,
+            'coordination_interactions': self.coordination_interactions,
+            'objective_weights': self.objective_weights,
+            'performance_trend': self._calculate_performance_trend(),
+            'last_coordinator_update': self.last_coordinator_update,
+            'last_mediator_interaction': self.last_mediator_interaction,
+            'meta_learning_enabled': self.meta_learning_enabled,
+            'collaborative_learning_enabled': self.collaborative_learning_enabled
+        }
+        
+        return enhanced_status
+    
+    
+    
+    
+    
+
+    
+    
     def get_enhanced_learning_status(self) -> Dict:
         """
         Get comprehensive learning status including hierarchical features

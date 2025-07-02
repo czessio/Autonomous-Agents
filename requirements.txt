@@ -1,9 +1,56 @@
-numpy>=1.24
-pandas>=2.0
-opencv-python>=4.10
-openai>=0.27
-langchain>=0.0.200
-matplotlib>=3.7
-pytest>=7.0
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+scikit-learn>=1.3.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+jupyter>=1.0.0
+ipykernel>=6.20.0
+notebook>=6.5.0
+pytest>=7.0.0
+pytest-cov>=4.0.0
+unittest2>=1.1.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+psutil>=5.9.0
+tqdm>=4.65.0
+sphinx>=7.0.0
+sphinx-rtd-theme>=1.3.0
+pickle-compat>=1.0.0
+h5py>=3.8.0
+numba>=0.57.0
+cython>=3.0.0
+coverage>=7.0.0
+bandit>=1.7.0
+loguru>=0.7.0
+rich>=13.0.0
+pyyaml>=6.0.0
+configparser>=5.3.0
+pydantic>=2.0.0
+typing-extensions>=4.5.0
+joblib>=1.3.0
+multiprocessing-logging>=0.3.4
+python-dateutil>=2.8.0
+cvxpy>=1.3.0
+memory-profiler>=0.60.0
+pympler>=0.9
+wheel>=0.40.0
+setuptools>=68.0.0
+pre-commit>=3.3.0
+commitizen>=3.5.0
+openpyxl>=3.1.0
+xlsxwriter>=3.1.0
+reportlab>=4.0.0
+requests>=2.31.0
+websockets>=11.0.0
+imageio>=2.31.0
+pillow>=10.0.0
+statsmodels>=0.14.0
+pingouin>=0.5.3
 
-
+# CONDA ENVIRONMENT (Alternative):
+# ===============================
+# conda create -n mountain-rescue python=3.9
+# conda activate mountain-rescue
+# pip install -r requirements.txt
